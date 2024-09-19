@@ -19,7 +19,7 @@ def index():
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 # Recuperar el contenido de las credenciales desde la variable de entorno
-GOOGLE_APPLICATION_CREDENTIALS_JSON = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+GOOGLE_APPLICATION_CREDENTIALS_JSON = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 if not GOOGLE_APPLICATION_CREDENTIALS_JSON:
     raise ValueError('La variable de entorno GOOGLE_APPLICATION_CREDENTIALS_JSON no está definida.')
