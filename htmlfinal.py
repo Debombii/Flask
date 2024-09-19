@@ -1,8 +1,7 @@
 import os
 import io
 import re
-from flask import Flask, render_template
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
@@ -19,7 +18,7 @@ def index():
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 # Recuperar la ruta del archivo de credenciales desde la variable de entorno
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv('SERVICE_ACCOUNT_FILE')
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 if not GOOGLE_APPLICATION_CREDENTIALS:
     raise ValueError('La variable de entorno GOOGLE_APPLICATION_CREDENTIALS no está definida.')
