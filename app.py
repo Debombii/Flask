@@ -2,7 +2,7 @@ import os
 import io
 import re
 import json
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -100,6 +100,11 @@ def insertar_nuevo_contenido(template_html, new_div_html):
         template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
 
     return template_html
+
+# Endpoint para servir el favicon
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # Endpoint para recibir la compañía y archivo
 @app.route('/upload-file', methods=['POST'])
