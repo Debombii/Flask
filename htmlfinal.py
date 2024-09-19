@@ -1,7 +1,7 @@
 import os
 import io
 import re
-from xmlrpc import server
+import json
 from flask import Flask, request, jsonify
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -14,10 +14,17 @@ CORS(app)
 
 # Configuración de Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_FILE = 'credentials.json'  # Ajusta la ruta si es necesario
 
-creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-service = build('drive', 'v3', credentials=creds)
+# Leer las credenciales desde la variable de entorno
+SERVICE_ACCOUNT_INFO = os.getenv('SERVICE_ACCOUNT_FILE')  # Esto es el contenido de 'credentials.json' en formato string
+
+if SERVICE_ACCOUNT_INFO:
+    # Convertir el JSON string de la variable de entorno a un diccionario
+    service_account_info = json.loads(SERVICE_ACCOUNT_INFO)
+    creds = service_account.Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    service = build('drive', 'v3', credentials=creds)
+else:
+    raise ValueError("No se ha encontrado la variable de entorno SERVICE_ACCOUNT_FILE")
 
 # Ruta de la carpeta de Google Drive (extraída de un enlace)
 FOLDER_LINK = 'https://drive.google.com/drive/folders/1_ss3rYceeMH9pEmWi17-31N3gi_nFpuw?usp=sharing'
@@ -53,7 +60,6 @@ def delete_file(file_id):
             print(f"Archivo {file_id} no encontrado. Asegúrate de que el ID del archivo es correcto.")
         else:
             print(f"Error al eliminar el archivo {file_id}: {error}")
-
 
 # Descargar archivo de Google Drive
 def download_file(file_name, folder_id, destination):
@@ -160,4 +166,4 @@ def send_company():
     return jsonify({'message': f'Compañía recibida: {company}'})
 
 if __name__ == '__main__':
-    server(app, host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000)
