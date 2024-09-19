@@ -107,50 +107,57 @@ def insertar_nuevo_contenido(template_html, new_div_html):
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-# Endpoint para recibir la compañía y archivo
+# Endpoint para recibir la compañía y contenido en lugar de un archivo
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No se envió ningún archivo'}), 400
+    try:
+        data = request.json
+        print(f"Datos recibidos: {data}")  # Agrega registro para depuración
+        
+        content = data.get('content')
+        company = data.get('company')
 
-    file = request.files['file']
-    company = request.form.get('company')
+        if not content:
+            return jsonify({'error': 'No se envió contenido'}), 400
 
-    if not company or company not in ['MRG', 'Rubicon', 'GERP']:
-        return jsonify({'error': 'Compañía inválida'}), 400
+        if not company or company not in ['MRG', 'Rubicon', 'GERP']:
+            return jsonify({'error': 'Compañía inválida'}), 400
 
-    # Leer el contenido del archivo subido en memoria
-    file_content = file.read()
+        # Mapear compañía a nombre de plantilla
+        TEMPLATE_HTML_NAME = {
+            'MRG': 'template_MRG.html',
+            'Rubicon': 'template_Rubi.html',
+            'GERP': 'template_GERP.html'
+        }[company]
 
-    # Mapear compañía a nombre de plantilla
-    TEMPLATE_HTML_NAME = {
-        'MRG': 'template_MRG.html',
-        'Rubicon': 'template_Rubi.html',
-        'GERP': 'template_GERP.html'
-    }[company]
+        # Buscar el archivo de plantilla en Google Drive
+        template_file_id = find_file_id_by_name(TEMPLATE_HTML_NAME, FOLDER_ID)
+        if not template_file_id:
+            return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_HTML_NAME}'}), 500
 
-    # Buscar el archivo de plantilla en Google Drive
-    template_file_id = find_file_id_by_name(TEMPLATE_HTML_NAME, FOLDER_ID)
-    if not template_file_id:
-        return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_HTML_NAME}'}), 500
+        print(f"ID del archivo de plantilla: {template_file_id}")  # Agrega registro para depuración
 
-    # Obtener la plantilla desde Google Drive
-    template_content = get_file_content(template_file_id)
-    if template_content is None:
-        return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
+        # Obtener la plantilla desde Google Drive
+        template_content = get_file_content(template_file_id)
+        if template_content is None:
+            return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
 
-    template_html = leer_html_from_memory(template_content)
-    new_div_html = leer_html_from_memory(file_content)
+        template_html = leer_html_from_memory(template_content)
+        new_div_html = content  # El contenido ya está en formato HTML
 
-    # Insertar el nuevo contenido en la plantilla
-    resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
+        # Insertar el nuevo contenido en la plantilla
+        resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
 
-    # Subir el archivo actualizado a Google Drive
-    upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
-    if upload_file_id is None:
-        return jsonify({'error': 'No se pudo actualizar el archivo en Google Drive'}), 500
+        # Subir el archivo actualizado a Google Drive
+        upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
+        if upload_file_id is None:
+            return jsonify({'error': 'No se pudo actualizar el archivo en Google Drive'}), 500
 
-    return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
+        return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
+    
+    except Exception as e:
+        print(f"Error: {e}")  # Agrega registro de error general
+        return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 # Nuevo endpoint para recibir la compañía seleccionada
 @app.route('/api/send-company', methods=['POST'])
