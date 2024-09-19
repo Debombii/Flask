@@ -53,9 +53,9 @@ def find_file_id_by_name(file_name, folder_id):
         return items[0]['id']
     return None
 
-# Leer archivo HTML desde Google Drive en memoria
-def read_file_from_drive(file_id):
-    request = service.files().get_media(fileId=file_id)
+# Obtener el contenido del archivo desde Google Drive
+def get_file_content(file_id):
+    request = service.files().export_media(fileId=file_id, mimeType='text/html')
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
     done = False
@@ -128,8 +128,8 @@ def upload_file_endpoint():
     if not template_file_id:
         return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_HTML_NAME}'}), 500
 
-    # Leer la plantilla desde Google Drive
-    template_content = read_file_from_drive(template_file_id)
+    # Obtener la plantilla desde Google Drive
+    template_content = get_file_content(template_file_id)
     template_html = leer_html_from_memory(template_content)
     new_div_html = leer_html_from_memory(file_content)
 
