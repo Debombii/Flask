@@ -5,7 +5,7 @@ import json
 from flask import Flask, render_template, request, jsonify
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 from flask_cors import CORS
 from googleapiclient.errors import HttpError
 
@@ -53,25 +53,8 @@ def find_file_id_by_name(file_name, folder_id):
         return items[0]['id']
     return None
 
-# Eliminar archivo en Google Drive
-def delete_file(file_id):
-    try:
-        service.files().delete(fileId=file_id).execute()
-        print(f"Archivo {file_id} eliminado exitosamente.")
-    except HttpError as error:
-        if error.resp.status == 403:
-            print(f"Permiso denegado para eliminar el archivo {file_id}. Asegúrate de que las credenciales tengan permisos adecuados.")
-        elif error.resp.status == 404:
-            print(f"Archivo {file_id} no encontrado. Asegúrate de que el ID del archivo es correcto.")
-        else:
-            print(f"Error al eliminar el archivo {file_id}: {error}")
-
-# Descargar archivo de Google Drive
-def download_file(file_name, folder_id):
-    file_id = find_file_id_by_name(file_name, folder_id)
-    if not file_id:
-        print(f"No se encontró el archivo {file_name}")
-        return None
+# Leer archivo HTML desde Google Drive en memoria
+def read_file_from_drive(file_id):
     request = service.files().get_media(fileId=file_id)
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
@@ -83,13 +66,18 @@ def download_file(file_name, folder_id):
     return fh.getvalue()
 
 # Subir archivo a Google Drive
-def upload_file(file_content, folder_id, file_name):
+def upload_file(file_content, folder_id, file_name, file_id=None):
     file_metadata = {
         'name': file_name,
         'parents': [folder_id]
     }
     media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype='text/html')
-    response = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    if file_id:
+        # Actualizar archivo existente
+        response = service.files().update(fileId=file_id, body=file_metadata, media_body=media, fields='id').execute()
+    else:
+        # Crear nuevo archivo
+        response = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     return response['id']
 
 # Leer archivo HTML desde contenido en memoria
@@ -135,12 +123,13 @@ def upload_file_endpoint():
         'GERP': 'template_GERP.html'
     }[company]
 
-    # Descargar la plantilla específica de la compañía desde Google Drive
-    template_content = download_file(TEMPLATE_HTML_NAME, FOLDER_ID)
-    if not template_content:
-        return jsonify({'error': f'No se pudo descargar la plantilla {TEMPLATE_HTML_NAME}'}), 500
+    # Buscar el archivo de plantilla en Google Drive
+    template_file_id = find_file_id_by_name(TEMPLATE_HTML_NAME, FOLDER_ID)
+    if not template_file_id:
+        return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_HTML_NAME}'}), 500
 
-    # Leer la plantilla descargada y el contenido del archivo changelog.html
+    # Leer la plantilla desde Google Drive
+    template_content = read_file_from_drive(template_file_id)
     template_html = leer_html_from_memory(template_content)
     new_div_html = leer_html_from_memory(file_content)
 
@@ -148,7 +137,7 @@ def upload_file_endpoint():
     resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
 
     # Subir el archivo actualizado a Google Drive
-    upload_file_id = upload_file(resultado_html.encode('utf-8'), FOLDER_ID, TEMPLATE_HTML_NAME)
+    upload_file_id = upload_file(resultado_html.encode('utf-8'), FOLDER_ID, TEMPLATE_HTML_NAME, file_id=template_file_id)
 
     return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
 
