@@ -1,6 +1,7 @@
 import os
 import io
 import re
+import json
 from flask import Flask, render_template, request, jsonify
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -17,13 +18,17 @@ def index():
 # Configuración de Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
-# Recuperar la ruta del archivo de credenciales desde la variable de entorno
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+# Recuperar el contenido de las credenciales desde la variable de entorno
+GOOGLE_APPLICATION_CREDENTIALS_JSON = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
 
-if not GOOGLE_APPLICATION_CREDENTIALS:
-    raise ValueError('La variable de entorno GOOGLE_APPLICATION_CREDENTIALS no está definida.')
+if not GOOGLE_APPLICATION_CREDENTIALS_JSON:
+    raise ValueError('La variable de entorno GOOGLE_APPLICATION_CREDENTIALS_JSON no está definida.')
 
-creds = service_account.Credentials.from_service_account_file(GOOGLE_APPLICATION_CREDENTIALS, scopes=SCOPES)
+# Convertir el contenido JSON a un diccionario
+creds_info = json.loads(GOOGLE_APPLICATION_CREDENTIALS_JSON)
+
+# Crear las credenciales a partir del contenido JSON
+creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
 service = build('drive', 'v3', credentials=creds)
 
 # Ruta de la carpeta de Google Drive
