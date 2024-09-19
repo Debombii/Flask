@@ -16,7 +16,7 @@ def index():
 
 # Configuración de Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
-GOOGLE_APPLICATION_CREDENTIALS = 'credentials.json'
+GOOGLE_APPLICATION_CREDENTIALS = 'SERVICE_ACCOUNT_FILE'
 
 creds = service_account.Credentials.from_service_account_file(GOOGLE_APPLICATION_CREDENTIALS, scopes=SCOPES)
 service = build('drive', 'v3', credentials=creds)
