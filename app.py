@@ -111,15 +111,19 @@ def favicon():
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
     try:
+        # Obtener los datos JSON del cuerpo de la solicitud
         data = request.json
-        print(f"Datos recibidos: {data}")  # Agrega registro para depuración
-        
-        content = data.get('content')
+        print(f"Datos recibidos: {data}")  # Registro para depuración
+
+        # Obtener el contenido HTML y la empresa del JSON recibido
+        body_content = data.get('bodyContent')  # Cambiado de 'content' a 'bodyContent'
         company = data.get('company')
 
-        if not content:
+        # Validar que se ha enviado contenido HTML
+        if not body_content:
             return jsonify({'error': 'No se envió contenido'}), 400
 
+        # Validar que la empresa sea válida
         if not company or company not in ['MRG', 'Rubicon', 'GERP']:
             return jsonify({'error': 'Compañía inválida'}), 400
 
@@ -135,7 +139,7 @@ def upload_file_endpoint():
         if not template_file_id:
             return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_HTML_NAME}'}), 500
 
-        print(f"ID del archivo de plantilla: {template_file_id}")  # Agrega registro para depuración
+        print(f"ID del archivo de plantilla: {template_file_id}")  # Registro para depuración
 
         # Obtener la plantilla desde Google Drive
         template_content = get_file_content(template_file_id)
@@ -143,10 +147,9 @@ def upload_file_endpoint():
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
 
         template_html = leer_html_from_memory(template_content)
-        new_div_html = content  # El contenido ya está en formato HTML
 
         # Insertar el nuevo contenido en la plantilla
-        resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
+        resultado_html = insertar_nuevo_contenido(template_html, body_content)
 
         # Subir el archivo actualizado a Google Drive
         upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
@@ -156,8 +159,9 @@ def upload_file_endpoint():
         return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
     
     except Exception as e:
-        print(f"Error: {e}")  # Agrega registro de error general
+        print(f"Error: {e}")  # Registro de error general
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 # Nuevo endpoint para recibir la compañía seleccionada
 @app.route('/api/send-company', methods=['POST'])
