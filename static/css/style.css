@@ -37,6 +37,16 @@ body {
     font-size: 1.5rem;
     color: #e33a0b;
 }
+.context a {
+    font-size: 1.5rem;
+    color: #e33a0b;
+    text-decoration: none;
+}
+
+.context a:hover {
+    color: #c66f28;
+}
+
 
 .button-container {
     margin-top: 2rem;
