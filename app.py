@@ -12,6 +12,7 @@ from googleapiclient.errors import HttpError
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/')
 def index():
     return render_template('index.html')
 
