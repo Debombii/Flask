@@ -57,13 +57,25 @@ def find_file_id_by_name(file_name, folder_id):
 # Obtener el contenido del archivo desde Google Drive
 def get_file_content(file_id):
     try:
-        # Exportar el contenido del archivo como HTML
-        request = service.files().export_media(fileId=file_id, mimeType='text/html')
-        response = request.execute()
+        # Obtener la metadata del archivo para identificar el MIME type
+        file_metadata = service.files().get(fileId=file_id, fields='mimeType').execute()
+        mime_type = file_metadata.get('mimeType')
+        
+        # Verificar si el archivo es un documento de Google
+        if mime_type in ['application/vnd.google-apps.document', 'application/vnd.google-apps.spreadsheet', 'application/vnd.google-apps.presentation']:
+            # Exportar el contenido del archivo como HTML
+            request = service.files().export_media(fileId=file_id, mimeType='text/html')
+            response = request.execute()
+        else:
+            # Obtener el contenido del archivo para otros tipos de archivo
+            request = service.files().get_media(fileId=file_id)
+            response = request.execute()
+
         return response
     except HttpError as error:
         print(f'Error al obtener el contenido del archivo: {error}')
         return None
+
 
 # Subir archivo a Google Drive
 def update_file_content(file_id, new_content):
