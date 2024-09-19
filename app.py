@@ -5,7 +5,7 @@ import json
 from flask import Flask, render_template, request, jsonify
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseUpload
 from flask_cors import CORS
 from googleapiclient.errors import HttpError
 
@@ -55,30 +55,30 @@ def find_file_id_by_name(file_name, folder_id):
 
 # Obtener el contenido del archivo desde Google Drive
 def get_file_content(file_id):
-    request = service.files().export_media(fileId=file_id, mimeType='text/html')
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while not done:
-        status, done = downloader.next_chunk()
-        print(f'Descargado {int(status.progress() * 100)}%')
-    fh.seek(0)
-    return fh.getvalue()
+    try:
+        # Exportar el contenido del archivo como HTML
+        request = service.files().export_media(fileId=file_id, mimeType='text/html')
+        response = request.execute()
+        return response
+    except HttpError as error:
+        print(f'Error al obtener el contenido del archivo: {error}')
+        return None
 
 # Subir archivo a Google Drive
-def upload_file(file_content, folder_id, file_name, file_id=None):
-    file_metadata = {
-        'name': file_name,
-        'parents': [folder_id]
-    }
-    media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype='text/html')
-    if file_id:
-        # Actualizar archivo existente
-        response = service.files().update(fileId=file_id, body=file_metadata, media_body=media, fields='id').execute()
-    else:
-        # Crear nuevo archivo
-        response = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    return response['id']
+def update_file_content(file_id, new_content):
+    try:
+        # Crear un objeto de media con el nuevo contenido
+        media = MediaIoBaseUpload(io.BytesIO(new_content), mimetype='text/html')
+        
+        # Actualizar el archivo existente
+        updated_file = service.files().update(
+            fileId=file_id,
+            media_body=media
+        ).execute()
+        return updated_file.get('id')
+    except HttpError as error:
+        print(f'Error al actualizar el archivo: {error}')
+        return None
 
 # Leer archivo HTML desde contenido en memoria
 def leer_html_from_memory(file_content):
@@ -130,6 +130,9 @@ def upload_file_endpoint():
 
     # Obtener la plantilla desde Google Drive
     template_content = get_file_content(template_file_id)
+    if template_content is None:
+        return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
+
     template_html = leer_html_from_memory(template_content)
     new_div_html = leer_html_from_memory(file_content)
 
@@ -137,7 +140,9 @@ def upload_file_endpoint():
     resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
 
     # Subir el archivo actualizado a Google Drive
-    upload_file_id = upload_file(resultado_html.encode('utf-8'), FOLDER_ID, TEMPLATE_HTML_NAME, file_id=template_file_id)
+    upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
+    if upload_file_id is None:
+        return jsonify({'error': 'No se pudo actualizar el archivo en Google Drive'}), 500
 
     return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
 
