@@ -8,7 +8,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from flask_cors import CORS
 from googleapiclient.errors import HttpError
-from google.cloud import storage
 
 app = Flask(__name__)
 CORS(app)
@@ -31,10 +30,6 @@ creds_info = json.loads(GOOGLE_APPLICATION_CREDENTIALS_JSON)
 # Crear las credenciales a partir del contenido JSON
 creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
 service = build('drive', 'v3', credentials=creds)
-
-# Configuración de Google Cloud Storage
-storage_client = storage.Client()
-BUCKET_NAME = 'tu-bucket'  # Reemplaza con el nombre de tu bucket en GCS
 
 # Ruta de la carpeta de Google Drive
 FOLDER_LINK = 'https://drive.google.com/drive/folders/1_ss3rYceeMH9pEmWi17-31N3gi_nFpuw?usp=sharing'
@@ -87,11 +82,15 @@ def download_file(file_name, folder_id):
     fh.seek(0)
     return fh.getvalue()
 
-# Subir archivo a Google Cloud Storage
-def upload_to_gcs(file_content, bucket_name, destination_blob_name):
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-    blob.upload_from_string(file_content, content_type='text/html')
+# Subir archivo a Google Drive
+def upload_file(file_content, folder_id, file_name):
+    file_metadata = {
+        'name': file_name,
+        'parents': [folder_id]
+    }
+    media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype='text/html')
+    response = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    return response['id']
 
 # Leer archivo HTML desde contenido en memoria
 def leer_html_from_memory(file_content):
@@ -148,10 +147,10 @@ def upload_file_endpoint():
     # Insertar el nuevo contenido en la plantilla
     resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
 
-    # Subir el archivo actualizado a Google Cloud Storage
-    upload_to_gcs(resultado_html.encode('utf-8'), BUCKET_NAME, TEMPLATE_HTML_NAME)
+    # Subir el archivo actualizado a Google Drive
+    upload_file_id = upload_file(resultado_html.encode('utf-8'), FOLDER_ID, TEMPLATE_HTML_NAME)
 
-    return jsonify({'message': 'Archivo subido y procesado correctamente'})
+    return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
 
 # Nuevo endpoint para recibir la compañía seleccionada
 @app.route('/api/send-company', methods=['POST'])
