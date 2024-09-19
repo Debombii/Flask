@@ -137,7 +137,7 @@ def upload_file_endpoint():
         if not companies:
             return jsonify({'error': 'No se enviaron compañías'}), 400
 
-        # Mapear compañía a nombre de plantilla
+        # AÑADIR MÁS PROYECTOS SI HACE FALTA
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
