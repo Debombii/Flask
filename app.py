@@ -76,7 +76,6 @@ def get_file_content(file_id):
         print(f'Error al obtener el contenido del archivo: {error}')
         return None
 
-
 # Subir archivo a Google Drive
 def update_file_content(file_id, new_content):
     try:
@@ -127,60 +126,57 @@ def upload_file_endpoint():
         data = request.json
         print(f"Datos recibidos: {data}")  # Registro para depuración
 
-        # Obtener el contenido HTML y la empresa del JSON recibido
-        body_content = data.get('bodyContent')  # Cambiado de 'content' a 'bodyContent'
-        company = data.get('company')
+        # Obtener el contenido HTML y las empresas del JSON recibido
+        body_content = data.get('bodyContent')
+        companies = data.get('companies', [])  # Cambiado de 'company' a 'companies', por defecto es lista vacía
 
         # Validar que se ha enviado contenido HTML
         if not body_content:
             return jsonify({'error': 'No se envió contenido'}), 400
 
-        # Validar que la empresa sea válida
-        if not company or company not in ['MRG', 'Rubicon', 'GERP']:
-            return jsonify({'error': 'Compañía inválida'}), 400
+        if not companies:
+            return jsonify({'error': 'No se enviaron compañías'}), 400
 
         # Mapear compañía a nombre de plantilla
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
             'GERP': 'template_GERP.html'
-        }[company]
+        }
 
-        # Buscar el archivo de plantilla en Google Drive
-        template_file_id = find_file_id_by_name(TEMPLATE_HTML_NAME, FOLDER_ID)
-        if not template_file_id:
-            return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_HTML_NAME}'}), 500
+        for company in companies:
+            if company not in TEMPLATE_HTML_NAME:
+                return jsonify({'error': f'Compañía inválida: {company}'}), 400
 
-        print(f"ID del archivo de plantilla: {template_file_id}")  # Registro para depuración
+            TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
 
-        # Obtener la plantilla desde Google Drive
-        template_content = get_file_content(template_file_id)
-        if template_content is None:
-            return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
+            # Buscar el archivo de plantilla en Google Drive
+            template_file_id = find_file_id_by_name(TEMPLATE_NAME, FOLDER_ID)
+            if not template_file_id:
+                return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_NAME}'}), 500
 
-        template_html = leer_html_from_memory(template_content)
+            print(f"ID del archivo de plantilla: {template_file_id}")  # Registro para depuración
 
-        # Insertar el nuevo contenido en la plantilla
-        resultado_html = insertar_nuevo_contenido(template_html, body_content)
+            # Obtener la plantilla desde Google Drive
+            template_content = get_file_content(template_file_id)
+            if template_content is None:
+                return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
 
-        # Subir el archivo actualizado a Google Drive
-        upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
-        if upload_file_id is None:
-            return jsonify({'error': 'No se pudo actualizar el archivo en Google Drive'}), 500
+            template_html = leer_html_from_memory(template_content)
 
-        return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
+            # Insertar el nuevo contenido en la plantilla
+            resultado_html = insertar_nuevo_contenido(template_html, body_content)
+
+            # Subir el archivo actualizado a Google Drive
+            upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
+            if upload_file_id is None:
+                return jsonify({'error': f'No se pudo actualizar el archivo en Google Drive para la plantilla {TEMPLATE_NAME}'}), 500
+
+        return jsonify({'message': 'Archivos actualizados correctamente'}), 200
     
     except Exception as e:
         print(f"Error: {e}")  # Registro de error general
         return jsonify({'error': 'Ocurrió un error interno'}), 500
-
-
-# Nuevo endpoint para recibir la compañía seleccionada
-@app.route('/api/send-company', methods=['POST'])
-def send_company():
-    data = request.get_json()
-    company = data.get('company')
-    return jsonify({'message': f'Compañía recibida: {company}'})
 
 if __name__ == '__main__':
     app.run(debug=True)
