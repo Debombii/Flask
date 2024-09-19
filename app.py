@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from flask_cors import CORS
 from googleapiclient.errors import HttpError
+from google.cloud import storage
 
 app = Flask(__name__)
 CORS(app)
@@ -30,6 +31,10 @@ creds_info = json.loads(GOOGLE_APPLICATION_CREDENTIALS_JSON)
 # Crear las credenciales a partir del contenido JSON
 creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
 service = build('drive', 'v3', credentials=creds)
+
+# Configuración de Google Cloud Storage
+storage_client = storage.Client()
+BUCKET_NAME = 'tu-bucket'
 
 # Ruta de la carpeta de Google Drive
 FOLDER_LINK = 'https://drive.google.com/drive/folders/1_ss3rYceeMH9pEmWi17-31N3gi_nFpuw?usp=sharing'
@@ -73,28 +78,30 @@ def download_file(file_name, folder_id, destination):
         print(f"No se encontró el archivo {file_name}")
         return False
     request = service.files().get_media(fileId=file_id)
-    fh = io.FileIO(destination, mode='wb')
+    fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while not done:
         status, done = downloader.next_chunk()
         print(f'Descargado {int(status.progress() * 100)}%')
-    return True
+    fh.seek(0)
+    return fh.read()
 
-# Subir archivo a Google Drive
-def upload_file(file_path, folder_id):
-    file_metadata = {
-        'name': os.path.basename(file_path),
-        'parents': [folder_id]
-    }
-    media = MediaFileUpload(file_path, resumable=True)
-    response = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    return response['id']
+# Subir archivo a Google Cloud Storage
+def upload_to_gcs(file_content, bucket_name, destination_blob_name):
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_string(file_content, content_type='text/html')
 
-# Leer archivo HTML
-def leer_html(ruta_archivo):
-    with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
-        return archivo.read()
+# Descargar archivo de Google Cloud Storage
+def download_from_gcs(bucket_name, source_blob_name):
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    return blob.download_as_text()
+
+# Leer archivo HTML desde contenido en memoria
+def leer_html_from_memory(file_content):
+    return file_content.decode('utf-8')
 
 # Insertar nuevo contenido en la plantilla HTML
 def insertar_nuevo_contenido(template_html, new_div_html):
@@ -125,8 +132,9 @@ def upload_file_endpoint():
     if not company or company not in ['MRG', 'Rubicon', 'GERP']:
         return jsonify({'error': 'Compañía inválida'}), 400
 
-    # Guardar el archivo subido localmente
-    file.save('changelog.html')
+    # Leer el contenido del archivo subido en memoria
+    file_content = file.read()
+    file_content.seek(0)  # Resetear el puntero del archivo
 
     # Mapear compañía a nombre de plantilla
     TEMPLATE_HTML_NAME = {
@@ -136,32 +144,23 @@ def upload_file_endpoint():
     }[company]
 
     # Descargar la plantilla específica de la compañía desde Google Drive
-    if not download_file(TEMPLATE_HTML_NAME, FOLDER_ID, TEMPLATE_HTML_NAME):
+    template_content = download_file(TEMPLATE_HTML_NAME, FOLDER_ID, TEMPLATE_HTML_NAME)
+    if not template_content:
         return jsonify({'error': f'No se pudo descargar la plantilla {TEMPLATE_HTML_NAME}'}), 500
 
     # Leer la plantilla descargada y el contenido del archivo changelog.html
-    template_html = leer_html(TEMPLATE_HTML_NAME)
-    new_div_html = leer_html('changelog.html')
+    template_html = leer_html_from_memory(template_content)
+    new_div_html = leer_html_from_memory(file_content)
 
     # Insertar el nuevo contenido en la plantilla
     resultado_html = insertar_nuevo_contenido(template_html, new_div_html)
 
-    # Guardar el resultado en el archivo correspondiente
-    with open(TEMPLATE_HTML_NAME, 'w', encoding='utf-8') as archivo_final:
-        archivo_final.write(resultado_html)
+    # Subir el archivo actualizado a Google Cloud Storage
+    upload_to_gcs(resultado_html.encode('utf-8'), BUCKET_NAME, TEMPLATE_HTML_NAME)
 
-    # Subir el archivo actualizado a Google Drive
-    existing_file_id = find_file_id_by_name(TEMPLATE_HTML_NAME, FOLDER_ID)
-    if existing_file_id:
-        delete_file(existing_file_id)
+    # Limpiar archivos locales no es necesario en este entorno
 
-    upload_file_id = upload_file(TEMPLATE_HTML_NAME, FOLDER_ID)
-
-    # Limpiar archivos locales
-    os.remove('changelog.html')
-    os.remove(TEMPLATE_HTML_NAME)
-
-    return jsonify({'message': 'Archivo subido y procesado correctamente', 'file_id': upload_file_id})
+    return jsonify({'message': 'Archivo subido y procesado correctamente'})
 
 # Nuevo endpoint para recibir la compañía seleccionada
 @app.route('/api/send-company', methods=['POST'])
