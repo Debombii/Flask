@@ -11,12 +11,18 @@ from googleapiclient.errors import HttpError
 
 app = Flask(__name__)
 CORS(app)
+
 def index():
     return render_template('index.html')
 
 # Configuración de Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
-GOOGLE_APPLICATION_CREDENTIALS = 'SERVICE_ACCOUNT_FILE'
+
+# Recuperar la ruta del archivo de credenciales desde la variable de entorno
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('SERVICE_ACCOUNT_FILE')
+
+if not GOOGLE_APPLICATION_CREDENTIALS:
+    raise ValueError('La variable de entorno GOOGLE_APPLICATION_CREDENTIALS no está definida.')
 
 creds = service_account.Credentials.from_service_account_file(GOOGLE_APPLICATION_CREDENTIALS, scopes=SCOPES)
 service = build('drive', 'v3', credentials=creds)
@@ -55,7 +61,6 @@ def delete_file(file_id):
             print(f"Archivo {file_id} no encontrado. Asegúrate de que el ID del archivo es correcto.")
         else:
             print(f"Error al eliminar el archivo {file_id}: {error}")
-
 
 # Descargar archivo de Google Drive
 def download_file(file_name, folder_id, destination):
