@@ -34,7 +34,7 @@ service = build('drive', 'v3', credentials=creds)
 
 # Configuración de Google Cloud Storage
 storage_client = storage.Client()
-BUCKET_NAME = 'tu-bucket'
+BUCKET_NAME = 'tu-bucket'  # Reemplaza con el nombre de tu bucket en GCS
 
 # Ruta de la carpeta de Google Drive
 FOLDER_LINK = 'https://drive.google.com/drive/folders/1_ss3rYceeMH9pEmWi17-31N3gi_nFpuw?usp=sharing'
@@ -72,11 +72,11 @@ def delete_file(file_id):
             print(f"Error al eliminar el archivo {file_id}: {error}")
 
 # Descargar archivo de Google Drive
-def download_file(file_name, folder_id, destination):
+def download_file(file_name, folder_id):
     file_id = find_file_id_by_name(file_name, folder_id)
     if not file_id:
         print(f"No se encontró el archivo {file_name}")
-        return False
+        return None
     request = service.files().get_media(fileId=file_id)
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
@@ -85,19 +85,13 @@ def download_file(file_name, folder_id, destination):
         status, done = downloader.next_chunk()
         print(f'Descargado {int(status.progress() * 100)}%')
     fh.seek(0)
-    return fh.read()
+    return fh.getvalue()
 
 # Subir archivo a Google Cloud Storage
 def upload_to_gcs(file_content, bucket_name, destination_blob_name):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_string(file_content, content_type='text/html')
-
-# Descargar archivo de Google Cloud Storage
-def download_from_gcs(bucket_name, source_blob_name):
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(source_blob_name)
-    return blob.download_as_text()
 
 # Leer archivo HTML desde contenido en memoria
 def leer_html_from_memory(file_content):
@@ -134,7 +128,6 @@ def upload_file_endpoint():
 
     # Leer el contenido del archivo subido en memoria
     file_content = file.read()
-    file_content.seek(0)  # Resetear el puntero del archivo
 
     # Mapear compañía a nombre de plantilla
     TEMPLATE_HTML_NAME = {
@@ -144,7 +137,7 @@ def upload_file_endpoint():
     }[company]
 
     # Descargar la plantilla específica de la compañía desde Google Drive
-    template_content = download_file(TEMPLATE_HTML_NAME, FOLDER_ID, TEMPLATE_HTML_NAME)
+    template_content = download_file(TEMPLATE_HTML_NAME, FOLDER_ID)
     if not template_content:
         return jsonify({'error': f'No se pudo descargar la plantilla {TEMPLATE_HTML_NAME}'}), 500
 
@@ -157,8 +150,6 @@ def upload_file_endpoint():
 
     # Subir el archivo actualizado a Google Cloud Storage
     upload_to_gcs(resultado_html.encode('utf-8'), BUCKET_NAME, TEMPLATE_HTML_NAME)
-
-    # Limpiar archivos locales no es necesario en este entorno
 
     return jsonify({'message': 'Archivo subido y procesado correctamente'})
 
