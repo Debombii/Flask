@@ -6,8 +6,8 @@ import base64
 app = Flask(__name__)
 
 # Configuración de GitHub
-GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'
-GITHUB_REPO = 'YOUR_GITHUB_USER/YOUR_REPO_NAME'
+GITHUB_TOKEN = 'GITHUB_TOKEN'
+GITHUB_REPO = 'https://github.com/Debombii/React'
 
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
