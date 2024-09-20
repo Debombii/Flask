@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask_cors import CORS  # Importa CORS
 import requests
 import os
 import base64
 import threading
 
 app = Flask(__name__)
+CORS(app)  # Habilita CORS para toda la aplicación
 
 # Configuración de GitHub
 GITHUB_TOKEN = 'GITHUB_TOKEN'
