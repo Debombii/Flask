@@ -76,17 +76,27 @@ def insertar_nuevo_contenido(template_html, new_div_html):
     titulo_match = re.search(r'<h2 id="(.*?)">(.*?)</h2>', new_div_html)
     date_match = re.search(r'<p class=\'date\' id="date">(.*?)</p>', new_div_html)
 
-    if titulo_match and date_match:
-        id_titulo = titulo_match.group(1)
-        titulo = titulo_match.group(2)
-        date = date_match.group(1)
+    if not titulo_match:
+        logger.error("No se encontró un título en el contenido nuevo.")
+        return None  # O manejarlo de otra manera
 
-        # Insertar el nuevo contenido en la sección correspondiente
-        template_html = re.sub(r'(<div class="content">)', r'\1\n' + new_div_html, template_html, 1)
+    if not date_match:
+        logger.error("No se encontró una fecha en el contenido nuevo.")
+        return None  # O manejarlo de otra manera
 
-        # Crear nueva entrada en el índice
-        nueva_entrada_indice = f'<li><a href="#{id_titulo}">{titulo} - {date}</a></li>'
-        template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
+    id_titulo = titulo_match.group(1)
+    titulo = titulo_match.group(2)
+    date = date_match.group(1)
+
+    # Insertar el nuevo contenido en la sección correspondiente
+    template_html = re.sub(r'(<div class="content">)', r'\1\n' + new_div_html, template_html, 1)
+
+    # Crear nueva entrada en el índice
+    nueva_entrada_indice = f'<li><a href="#{id_titulo}">{titulo} - {date}</a></li>'
+    template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
+
+    return template_html
+
 
 
 # Función para manejar la actualización de archivos de manera secuencial
@@ -119,6 +129,10 @@ def update_files(companies, body_content):
 
             # Insertar el nuevo contenido en la plantilla
             resultado_html = insertar_nuevo_contenido(template_content, body_content)
+
+            if resultado_html is None:
+                logger.error(f'Error al insertar contenido en la plantilla para {company}.')
+                continue
 
             # Subir el archivo actualizado a GitHub
             upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html, template_file_sha)
