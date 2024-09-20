@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuración de GitHub
-GITHUB_TOKEN = 'GITHUB_TOKEN'
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')  # Cambia esto para leer el token de las variables de entorno
 
 @app.route('/favicon.ico')
 def favicon():
@@ -21,7 +21,7 @@ def favicon():
 
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
-    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'
+    url = f'https://api.github.com/repos/Debombii/React/contents/src/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     logger.info(f"Buscando SHA para el archivo: {file_name}")
     response = requests.get(url, headers=headers)
