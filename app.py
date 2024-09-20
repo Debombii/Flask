@@ -71,20 +71,20 @@ def update_files(companies, body_content):
         for company in companies:
             if company not in TEMPLATE_HTML_NAME:
                 print(f'Compañía inválida: {company}')
-                continue  # O manejar error de otra forma
+                continue
 
             TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
 
             # Buscar el archivo de plantilla en GitHub
             template_file_sha = find_file_sha_by_name(TEMPLATE_NAME)
             if not template_file_sha:
-                print(f'No se encontró el archivo de plantilla {TEMPLATE_NAME}')
+                print(f'Error: No se encontró el archivo de plantilla {TEMPLATE_NAME}')
                 continue
 
             # Obtener la plantilla desde GitHub
             template_content = get_file_content(TEMPLATE_NAME)
             if template_content is None:
-                print('No se pudo obtener el contenido del archivo de plantilla')
+                print(f'Error: No se pudo obtener el contenido del archivo de plantilla {TEMPLATE_NAME}')
                 continue
 
             # Insertar el nuevo contenido en la plantilla
@@ -93,13 +93,14 @@ def update_files(companies, body_content):
             # Subir el archivo actualizado a GitHub
             upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html, template_file_sha)
             if upload_file_sha is None:
-                print(f'No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
+                print(f'Error: No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
                 continue
 
         print('Archivos actualizados correctamente para todas las empresas')
-    
+
     except Exception as e:
         print(f'Error: {e}')
+
 
 # Endpoint para recibir la compañía y contenido en lugar de un archivo
 @app.route('/upload-file', methods=['POST'])
