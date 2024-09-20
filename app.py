@@ -24,7 +24,6 @@ def favicon():
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/src/{file_name}'
-    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     logger.info(f"Buscando SHA para el archivo: {file_name}")
     response = requests.get(url, headers=headers)
     
@@ -32,7 +31,7 @@ def find_file_sha_by_name(file_name):
         sha = response.json()['sha']
         logger.info(f"SHA encontrado: {sha}")
         return sha
-    logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text}")
+    logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text} , {GITHUB_TOKEN}")
     return None
 
 # Función para obtener el contenido del archivo desde GitHub
