@@ -33,7 +33,7 @@ def get_file_content(file_id):
         service = build('drive', 'v3', credentials=creds)
 
         file = service.files().get_media(fileId=file_id).execute()
-        return file.decode('utf-8')  # Decodificar contenido del archivo
+        return file.decode('utf-8')
     except Exception as e:
         print(f"Error getting file content: {e}")
         return None
@@ -71,11 +71,11 @@ def upload_file_endpoint():
     try:
         # Obtener los datos JSON del cuerpo de la solicitud
         data = request.json
-        print(f"Datos recibidos: {data}")  # Registro para depuración
+        print(f"Datos recibidos: {data}")
 
         # Obtener el contenido HTML y las empresas del JSON recibido
         body_content = data.get('bodyContent')
-        companies = data.get('companies', [])  # Cambiado de 'company' a 'companies', por defecto es lista vacía
+        companies = data.get('companies', [])
 
         # Validar que se ha enviado contenido HTML
         if not body_content:
@@ -103,7 +103,7 @@ def upload_file_endpoint():
             if not template_file_id:
                 return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_NAME}'}), 500
 
-            print(f"ID del archivo de plantilla: {template_file_id}")  # Registro para depuración
+            print(f"ID del archivo de plantilla: {template_file_id}")
 
             # Obtener la plantilla desde Google Drive
             template_content = get_file_content(template_file_id)
@@ -123,7 +123,7 @@ def upload_file_endpoint():
         return jsonify({'message': 'Archivos actualizados correctamente para todas las empresas'}), 200
     
     except Exception as e:
-        print(f"Error: {e}")  # Registro de error general
+        print(f"Error: {e}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 if __name__ == '__main__':
