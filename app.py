@@ -78,9 +78,9 @@ def upload_file_endpoint():
 
         # Nombres de archivos de plantilla por compañía
         TEMPLATE_HTML_NAME = {
-            'MRG': 'template_MRG.html',
-            'Rubicon': 'template_Rubi.html',
-            'GERP': 'template_GERP.html'
+            'MRG': 'src/template_MRG.html',
+            'Rubicon': 'src/template_Rubi.html',
+            'GERP': 'src/template_GERP.html'
         }
 
         # Procesar cada empresa secuencialmente
