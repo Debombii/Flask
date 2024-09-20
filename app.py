@@ -21,7 +21,7 @@ def favicon():
 
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
-    url = f'https://api.github.com/repos/Debombii/React/contents/src/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     logger.info(f"Buscando SHA para el archivo: {file_name}")
     response = requests.get(url, headers=headers)
@@ -35,7 +35,7 @@ def find_file_sha_by_name(file_name):
 
 # Función para obtener el contenido del archivo desde GitHub
 def get_file_content(file_name):
-    url = f'https://api.github.com/repos/Debombii/React/contents/src/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     logger.info(f"Obteniendo contenido del archivo: {file_name}")
     response = requests.get(url, headers=headers)
@@ -49,7 +49,7 @@ def get_file_content(file_name):
 
 # Función para actualizar el contenido del archivo en GitHub
 def update_file_content(file_name, content, sha):
-    url = f'https://api.github.com/repos/Debombii/React/contents/src/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     
     # Codificar el contenido en base64
