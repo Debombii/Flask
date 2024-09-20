@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import requests
 import os
 import base64
@@ -115,8 +115,7 @@ def upload_file_endpoint():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
-
-# Nuevo endpoint para mostrar el contenido de index.html
+    
 @app.route('/')
 def index():
     return render_template('index.html')
