@@ -23,12 +23,12 @@ def favicon():
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    logger.info(f"Buscando SHA para el archivo: {file_name}")
+    logger.error(f"Buscando SHA para el archivo: {file_name}")
     response = requests.get(url, headers=headers)
     
     if response.status_code == 200:
         sha = response.json()['sha']
-        logger.info(f"SHA encontrado: {sha}")
+        logger.error(f"SHA encontrado: {sha}")
         return sha
     logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text}")
     return None
@@ -37,12 +37,12 @@ def find_file_sha_by_name(file_name):
 def get_file_content(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    logger.info(f"Obteniendo contenido del archivo: {file_name}")
+    logger.error(f"Obteniendo contenido del archivo: {file_name}")
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
         content = base64.b64decode(response.json()['content']).decode('utf-8')
-        logger.info(f"Contenido obtenido correctamente para {file_name}")
+        logger.error(f"Contenido obtenido correctamente para {file_name}")
         return content
     logger.error(f"Error al obtener contenido de {file_name}: {response.status_code} - {response.text}")
     return None
@@ -60,12 +60,12 @@ def update_file_content(file_name, content, sha):
         'content': encoded_content,
         'sha': sha
     }
-    logger.info(f"Actualizando archivo: {file_name}")
+    logger.error(f"Actualizando archivo: {file_name}")
     response = requests.put(url, json=data, headers=headers)
 
     if response.status_code == 200:
         new_sha = response.json()['content']['sha']
-        logger.info(f"Archivo {file_name} actualizado correctamente. Nuevo SHA: {new_sha}")
+        logger.error(f"Archivo {file_name} actualizado correctamente. Nuevo SHA: {new_sha}")
         return new_sha
     logger.error(f"Error al actualizar el archivo {file_name}: {response.status_code} - {response.text}")
     return None
@@ -111,9 +111,9 @@ def update_files(companies, body_content):
                 logger.error(f'Error: No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
                 continue
 
-            logger.info(f'Archivo actualizado correctamente para {company}')
+            logger.error(f'Archivo actualizado correctamente para {company}')
 
-        logger.info('Archivos actualizados correctamente para todas las empresas')
+        logger.error('Archivos actualizados correctamente para todas las empresas')
 
     except Exception as e:
         logger.error(f'Error: {e}')
@@ -123,7 +123,7 @@ def update_files(companies, body_content):
 def upload_file_endpoint():
     try:
         data = request.json
-        logger.info(f"Datos recibidos: {data}")
+        logger.error(f"Datos recibidos: {data}")
 
         body_content = data.get('bodyContent')
         companies = data.get('companies', [])
