@@ -117,17 +117,9 @@ def upload_file_endpoint():
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 # Nuevo endpoint para mostrar el contenido de index.html
-@app.route('/show-index', methods=['GET'])
-def show_index():
-    try:
-        index_content = get_file_content('templates/index.html')
-        if index_content is None:
-            return jsonify({'error': 'No se pudo obtener el contenido de index.html'}), 500
-        
-        return index_content, 200
-    except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({'error': 'Ocurrió un error interno'}), 500
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
