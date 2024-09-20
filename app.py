@@ -31,7 +31,7 @@ def find_file_sha_by_name(file_name):
         sha = response.json()['sha']
         logger.info(f"SHA encontrado: {sha}")
         return sha
-    logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text} , {GITHUB_TOKEN}")
+    logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text}")
     return None
 
 # Función para obtener el contenido del archivo desde GitHub
