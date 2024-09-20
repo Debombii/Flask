@@ -9,10 +9,6 @@ app = Flask(__name__)
 GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'
 GITHUB_REPO = 'YOUR_GITHUB_USER/YOUR_REPO_NAME'
 
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
-
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}'
