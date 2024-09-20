@@ -3,7 +3,6 @@ from flask_cors import CORS  # Importa CORS
 import requests
 import os
 import base64
-import threading
 
 app = Flask(__name__)
 CORS(app)  # Habilita CORS para toda la aplicación
@@ -59,7 +58,7 @@ def update_file_content(file_name, content, sha):
 def insertar_nuevo_contenido(template_html, nuevo_contenido):
     return template_html.replace("<!-- CONTENIDO -->", nuevo_contenido)
 
-# Función para manejar la actualización de archivos en segundo plano
+# Función para manejar la actualización de archivos de manera secuencial
 def update_files(companies, body_content):
     try:
         TEMPLATE_HTML_NAME = {
@@ -96,6 +95,8 @@ def update_files(companies, body_content):
                 print(f'Error: No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
                 continue
 
+            print(f'Archivo actualizado correctamente para {company}')
+
         print('Archivos actualizados correctamente para todas las empresas')
 
     except Exception as e:
@@ -118,11 +119,10 @@ def upload_file_endpoint():
         if not companies:
             return jsonify({'error': 'No se enviaron compañías'}), 400
 
-        # Ejecutar la actualización de archivos en segundo plano
-        thread = threading.Thread(target=update_files, args=(companies, body_content))
-        thread.start()
+        # Ejecutar la actualización de archivos
+        update_files(companies, body_content)
 
-        return jsonify({'message': 'Los archivos se están actualizando en segundo plano'}), 202
+        return jsonify({'message': 'Los archivos se han actualizado correctamente'}), 200
 
     except Exception as e:
         print(f"Error: {e}")
