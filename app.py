@@ -19,20 +19,28 @@ def favicon():
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/src/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    print(f"Buscando SHA para el archivo: {file_name}")
     response = requests.get(url, headers=headers)
     
     if response.status_code == 200:
-        return response.json()['sha']
+        sha = response.json()['sha']
+        print(f"SHA encontrado: {sha}")
+        return sha
+    print(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text}")
     return None
 
 # Función para obtener el contenido del archivo desde GitHub
 def get_file_content(file_name):
     url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/src/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    print(f"Obteniendo contenido del archivo: {file_name}")
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        return base64.b64decode(response.json()['content']).decode('utf-8')
+        content = base64.b64decode(response.json()['content']).decode('utf-8')
+        print(f"Contenido obtenido correctamente para {file_name}")
+        return content
+    print(f"Error al obtener contenido de {file_name}: {response.status_code} - {response.text}")
     return None
 
 # Función para actualizar el contenido del archivo en GitHub
@@ -48,10 +56,14 @@ def update_file_content(file_name, content, sha):
         'content': encoded_content,
         'sha': sha
     }
+    print(f"Actualizando archivo: {file_name}")
     response = requests.put(url, json=data, headers=headers)
 
     if response.status_code == 200:
-        return response.json()['content']['sha']
+        new_sha = response.json()['content']['sha']
+        print(f"Archivo {file_name} actualizado correctamente. Nuevo SHA: {new_sha}")
+        return new_sha
+    print(f"Error al actualizar el archivo {file_name}: {response.status_code} - {response.text}")
     return None
 
 # Función para insertar el nuevo contenido en la plantilla HTML
