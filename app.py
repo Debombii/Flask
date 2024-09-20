@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 # Configuración de GitHub
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')  # Cambia esto para leer el token de las variables de entorno
+logger.info(f"GITHUB_TOKEN: {GITHUB_TOKEN}")  # Esto es solo para debugging, retíralo después
+
 
 @app.route('/favicon.ico')
 def favicon():
