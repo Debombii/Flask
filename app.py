@@ -128,16 +128,16 @@ def upload_file_endpoint():
 
         # Obtener el contenido HTML y las empresas del JSON recibido
         body_content = data.get('bodyContent')
-        companies = data.get('companies', [])  # Cambiado de 'company' a 'companies', por defecto es lista vacía
+        companies = data.get('companies', [])
 
-        # Validar que se ha enviado contenido HTML
+        # Validar que se ha enviado contenido HTML y compañías
         if not body_content:
             return jsonify({'error': 'No se envió contenido'}), 400
 
         if not companies:
             return jsonify({'error': 'No se enviaron compañías'}), 400
 
-        # AÑADIR MÁS PROYECTOS SI HACE FALTA
+        # Mapeo de nombres de plantillas
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
