@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 import os
 import base64
+from flask import send_from_directory
 
 app = Flask(__name__)
 
@@ -47,6 +48,10 @@ def update_file_content(file_name, content, sha):
     if response.status_code == 200:
         return response.json()['content']['sha']
     return None
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # Función para leer HTML desde un archivo en memoria
 def leer_html_from_memory(content):
