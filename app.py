@@ -178,5 +178,6 @@ def upload_file_endpoint():
         print(f"Error: {e}")  # Registro de error general
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
+
 if __name__ == '__main__':
     app.run(debug=True)
