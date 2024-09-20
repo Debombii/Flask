@@ -1,64 +1,56 @@
 from flask import Flask, request, jsonify
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
+import requests
 import os
+import base64
 
 app = Flask(__name__)
 
-# Identificación del folder en Google Drive
-FOLDER_ID = 'YOUR_FOLDER_ID'
+# Configuración de GitHub
+GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'
+GITHUB_REPO = 'https://github.com/Debombii/React'
 
-# Función para encontrar el archivo por nombre en Google Drive
-def find_file_id_by_name(file_name, folder_id):
-    # Autentica con Google Drive API y busca el archivo
-    try:
-        creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/drive'])
-        service = build('drive', 'v3', credentials=creds)
+# Función para encontrar el archivo por nombre en GitHub
+def find_file_sha_by_name(file_name):
+    url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}'
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.json()['sha']
+    return None
 
-        query = f"name = '{file_name}' and '{folder_id}' in parents and trashed = false"
-        results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
-        files = results.get('files', [])
-        if files:
-            return files[0]['id']
-        return None
-    except Exception as e:
-        print(f"Error finding file: {e}")
-        return None
+# Función para obtener el contenido del archivo desde GitHub
+def get_file_content(file_name):
+    url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}'
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    response = requests.get(url, headers=headers)
 
-# Función para obtener el contenido del archivo desde Google Drive
-def get_file_content(file_id):
-    try:
-        creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/drive'])
-        service = build('drive', 'v3', credentials=creds)
+    if response.status_code == 200:
+        return response.json()['content']
+    return None
 
-        file = service.files().get_media(fileId=file_id).execute()
-        return file.decode('utf-8')
-    except Exception as e:
-        print(f"Error getting file content: {e}")
-        return None
+# Función para actualizar el contenido del archivo en GitHub
+def update_file_content(file_name, content, sha):
+    url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}'
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    
+    # Codificar el contenido en base64
+    encoded_content = base64.b64encode(content).decode('utf-8')
+    
+    data = {
+        'message': 'Updating file content',
+        'content': encoded_content,
+        'sha': sha
+    }
+    response = requests.put(url, json=data, headers=headers)
 
-# Función para actualizar el contenido del archivo en Google Drive
-def update_file_content(file_id, content):
-    try:
-        creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/drive'])
-        service = build('drive', 'v3', credentials=creds)
-
-        file_metadata = {'name': 'updated_template.html'}
-        media = MediaFileUpload(content, mimetype='text/html')
-        updated_file = service.files().update(
-            fileId=file_id,
-            media_body=media,
-            fields='id'
-        ).execute()
-        return updated_file['id']
-    except Exception as e:
-        print(f"Error updating file: {e}")
-        return None
+    if response.status_code == 200:
+        return response.json()['content']['sha']
+    return None
 
 # Función para leer HTML desde un archivo en memoria
 def leer_html_from_memory(content):
-    return content  # Ya se obtiene el contenido desde Drive
+    return content  # Ya se obtiene el contenido desde GitHub
 
 # Función para insertar el nuevo contenido en la plantilla HTML
 def insertar_nuevo_contenido(template_html, nuevo_contenido):
@@ -84,7 +76,7 @@ def upload_file_endpoint():
         if not companies:
             return jsonify({'error': 'No se enviaron compañías'}), 400
 
-        # AÑADIR MÁS PROYECTOS SI HACE FALTA
+        # Nombres de archivos de plantilla por compañía
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
@@ -98,15 +90,15 @@ def upload_file_endpoint():
 
             TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
 
-            # Buscar el archivo de plantilla en Google Drive
-            template_file_id = find_file_id_by_name(TEMPLATE_NAME, FOLDER_ID)
-            if not template_file_id:
+            # Buscar el archivo de plantilla en GitHub
+            template_file_sha = find_file_sha_by_name(TEMPLATE_NAME)
+            if not template_file_sha:
                 return jsonify({'error': f'No se encontró el archivo de plantilla {TEMPLATE_NAME}'}), 500
 
-            print(f"ID del archivo de plantilla: {template_file_id}")
+            print(f"SHA del archivo de plantilla: {template_file_sha}")
 
-            # Obtener la plantilla desde Google Drive
-            template_content = get_file_content(template_file_id)
+            # Obtener la plantilla desde GitHub
+            template_content = get_file_content(TEMPLATE_NAME)
             if template_content is None:
                 return jsonify({'error': 'No se pudo obtener el contenido del archivo de plantilla'}), 500
 
@@ -115,10 +107,10 @@ def upload_file_endpoint():
             # Insertar el nuevo contenido en la plantilla
             resultado_html = insertar_nuevo_contenido(template_html, body_content)
 
-            # Subir el archivo actualizado a Google Drive
-            upload_file_id = update_file_content(template_file_id, resultado_html.encode('utf-8'))
-            if upload_file_id is None:
-                return jsonify({'error': f'No se pudo actualizar el archivo en Google Drive para la plantilla {TEMPLATE_NAME}'}), 500
+            # Subir el archivo actualizado a GitHub
+            upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html.encode('utf-8').decode('utf-8'), template_file_sha)
+            if upload_file_sha is None:
+                return jsonify({'error': f'No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}'}), 500
 
         return jsonify({'message': 'Archivos actualizados correctamente para todas las empresas'}), 200
     
