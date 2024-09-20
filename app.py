@@ -4,6 +4,7 @@ import requests
 import os
 import base64
 import logging
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -71,8 +72,22 @@ def update_file_content(file_name, content, sha):
     return None
 
 # Función para insertar el nuevo contenido en la plantilla HTML
-def insertar_nuevo_contenido(template_html, nuevo_contenido):
-    return template_html.replace("<!-- CONTENIDO -->", nuevo_contenido)
+def insertar_nuevo_contenido(template_html, new_div_html):
+    titulo_match = re.search(r'<h2 id="(.*?)">(.*?)</h2>', new_div_html)
+    date_match = re.search(r'<p class=\'date\' id="date">(.*?)</p>', new_div_html)
+
+    if titulo_match and date_match:
+        id_titulo = titulo_match.group(1)
+        titulo = titulo_match.group(2)
+        date = date_match.group(1)
+
+        # Insertar el nuevo contenido en la sección correspondiente
+        template_html = re.sub(r'(<div class="content">)', r'\1\n' + new_div_html, template_html, 1)
+
+        # Crear nueva entrada en el índice
+        nueva_entrada_indice = f'<li><a href="#{id_titulo}">{titulo} - {date}</a></li>'
+        template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
+
 
 # Función para manejar la actualización de archivos de manera secuencial
 def update_files(companies, body_content):
