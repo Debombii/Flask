@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 import requests
 import base64
 import os
@@ -6,19 +6,15 @@ import os
 app = Flask(__name__)
 
 # Configuración de GitHub
-GITHUB_TOKEN = 'YOUR_GITHUB_TOKEN'
-GITHUB_REPO = 'YOUR_GITHUB_USER/YOUR_REPO_NAME'
-
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')  # Asegúrate de establecer esto en tu configuración de Vercel
+GITHUB_REPO = os.environ.get('GITHUB_REPO')    # Asegúrate de establecer esto también
 
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     response = requests.get(url, headers=headers)
-    
+
     if response.status_code == 200:
         return response.json()['sha']
     return None
@@ -37,10 +33,10 @@ def get_file_content(file_name):
 def update_file_content(file_name, content, sha):
     url = f'https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    
+
     # Codificar el contenido en base64
     encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-    
+
     data = {
         'message': 'Updating file content',
         'content': encoded_content,
@@ -107,10 +103,10 @@ def upload_file_endpoint():
                 return jsonify({'error': f'No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}'}), 500
 
         return jsonify({'message': 'Archivos actualizados correctamente para todas las empresas'}), 200
-    
+
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
