@@ -50,7 +50,7 @@ def get_file_content(file_name):
 
 # Función para actualizar el contenido del archivo en GitHub
 def update_file_content(file_name, content, sha):
-    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'  # Asegúrate de que la ruta sea correcta
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     
     # Codificar el contenido en base64
