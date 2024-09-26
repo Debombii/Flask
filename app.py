@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuración de GitHub
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')  # Asegúrate de que tu token esté configurado en las variables de entorno
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 @app.route('/favicon.ico')
 def favicon():
@@ -22,7 +22,7 @@ def favicon():
 
 # Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
-    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     logger.error(f"Buscando SHA para el archivo: {file_name}")
     response = requests.get(url, headers=headers)
@@ -36,7 +36,7 @@ def find_file_sha_by_name(file_name):
 
 # Función para obtener el contenido del archivo desde GitHub
 def get_file_content(file_name):
-    url = f'https://api.github.com/repos/Debombii/React/contents/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     logger.error(f"Obteniendo contenido del archivo: {file_name}")
     response = requests.get(url, headers=headers)
@@ -50,7 +50,7 @@ def get_file_content(file_name):
 
 # Función para actualizar el contenido del archivo en GitHub
 def update_file_content(file_name, content, sha):
-    url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'  # Asegúrate de que la ruta sea correcta
+    url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     
     # Codificar el contenido en base64
@@ -78,11 +78,11 @@ def insertar_nuevo_contenido(template_html, new_div_html):
 
     if not titulo_match:
         logger.error("No se encontró un título en el contenido nuevo.")
-        return None  # O manejarlo de otra manera
+        return None
 
     if not date_match:
         logger.error("No se encontró una fecha en el contenido nuevo.")
-        return None  # O manejarlo de otra manera
+        return None 
 
     id_titulo = titulo_match.group(1)
     titulo = titulo_match.group(2)
