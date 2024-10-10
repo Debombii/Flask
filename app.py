@@ -105,7 +105,7 @@ def update_files(companies, body_content):
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
-            'GERP': 'template_GERP.html'
+            'GERP': 'template_GERP.html',
             'Godiz': 'template_Godiz.html'
         }
 
