@@ -9,18 +9,15 @@ import re
 app = Flask(__name__)
 CORS(app)
 
-# Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuración de GitHub
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
 
-# Función para encontrar el archivo por nombre en GitHub
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
@@ -34,7 +31,6 @@ def find_file_sha_by_name(file_name):
     logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text}")
     return None
 
-# Función para obtener el contenido del archivo desde GitHub
 def get_file_content(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
@@ -48,7 +44,6 @@ def get_file_content(file_name):
     logger.error(f"Error al obtener contenido de {file_name}: {response.status_code} - {response.text}")
     return None
 
-# Función para actualizar el contenido del archivo en GitHub
 def update_file_content(file_name, content, sha):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
@@ -71,7 +66,6 @@ def update_file_content(file_name, content, sha):
     logger.error(f"Error al actualizar el archivo {file_name}: {response.status_code} - {response.text}")
     return None
 
-# Función para insertar el nuevo contenido en la plantilla HTML
 def insertar_nuevo_contenido(template_html, new_div_html):
     titulo_match = re.search(r'<h2 id="(.*?)">(.*?)</h2>', new_div_html)
     date_match = re.search(r'<p class=\'date\' id="date">(.*?)</p>', new_div_html)
@@ -88,10 +82,8 @@ def insertar_nuevo_contenido(template_html, new_div_html):
     titulo = titulo_match.group(2)
     date = date_match.group(1)
 
-    # Insertar el nuevo contenido en la sección correspondiente
     template_html = re.sub(r'(<div class="content">)', r'\1\n' + new_div_html, template_html, 1)
 
-    # Crear nueva entrada en el índice
     nueva_entrada_indice = f'<li><a href="#{id_titulo}">{titulo} - {date}</a></li>'
     template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
 
