@@ -11,3 +11,7 @@ Antes de ejecutar el servidor, asegúrate de cumplir con los siguientes pasos:
 
    ```bash
    pip install -r requirements.txt
+
+## FrontEnd
+
+   Si desea visualizar el contenido del FrontEnd, vaya a https://github.com/Debombii/React
