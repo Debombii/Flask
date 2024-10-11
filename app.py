@@ -98,7 +98,8 @@ def update_files(companies, body_content):
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
             'GERP': 'template_GERP.html',
-            'Godiz': 'template_Godiz.html'
+            'Godiz': 'template_Godiz.html',
+            'OCC': 'template_OCC.html'
         }
 
         for company in companies:
