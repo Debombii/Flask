@@ -138,12 +138,18 @@ def listar_titulos_logs(file_name):
     content = get_file_content(file_name)
     if content is None:
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
-        return []  # Retorna una lista vacía si no se pudo obtener el contenido
+        return [] 
+        
+    titulos = re.findall(
+        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\">(.*?)</h3>",
+        content,
+        re.DOTALL  # Permite que el '.' capture nuevas líneas
+    )
 
-    # Extrae los títulos
-    titulos = re.findall(r'<h2 id="(.*?)">(.*?)</h2>', content)
+    # Registro de títulos encontrados
     logger.info(f'Títulos encontrados: {titulos}')
-    return [{'id': t[0], 'titulo': t[1]} for t in titulos]
+    
+    return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
 
 @app.route('/listar-titulos', methods=['POST'])
 def listar_titulos():
