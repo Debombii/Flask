@@ -167,17 +167,14 @@ def listar_titulos_logs(file_name):
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
         return [] 
 
-    # Ajustar la expresión regular para extraer la información de la nueva estructura
     titulos = re.findall(
         r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
         content,
         re.DOTALL  # Permite que el '.' capture nuevas líneas
     )
 
-    # Registro de títulos encontrados
     logger.info(f'Títulos encontrados: {titulos}')
 
-    # Devolver la lista de diccionarios con la información extraída
     return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
     
 def eliminar_log_por_titulo(file_name, titulo):
@@ -185,21 +182,34 @@ def eliminar_log_por_titulo(file_name, titulo):
     if content is None:
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
         return None
-    
-    # Usar una expresión regular para encontrar y eliminar el div con class 'version' que contenga el título específico
-    nuevo_contenido = re.sub(
-        rf"<div class='version'>.*?<h3 class=\"titulo\" id=\"{titulo}\">.*?</div>",
-        "", 
+
+    match = re.search(
+        rf"<div class='version'>\s*<h2 id=\"(.*?)\">.*?</h2>\s*<h3 class=\"titulo\" id=\"{titulo}\">.*?</h3>\s*.*?</div>",
         content, 
         flags=re.DOTALL
     )
-    
-    # Registro de la eliminación
-    if content != nuevo_contenido:
+
+    if match:
+        id_h2 = match.group(1)
+        
+        nuevo_contenido = re.sub(
+            rf"<div class='version'>\s*<h2 id=\"{id_h2}\">.*?</div>",
+            "", 
+            content, 
+            flags=re.DOTALL
+        )
+        
+        nuevo_contenido = re.sub(
+            rf"<li><a href=\"#{id_h2}\">.*?</a></li>",
+            "", 
+            nuevo_contenido
+        )
+
         logger.info(f'Log "{titulo}" y su contenedor eliminado del contenido del archivo {file_name}')
     else:
         logger.warning(f'No se encontró un log con el título "{titulo}" en el archivo {file_name}')
-    
+        return content 
+
     return nuevo_contenido
 
 @app.route('/eliminar-log', methods=['POST'])
