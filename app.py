@@ -142,7 +142,7 @@ def listar_titulos_logs(file_name):
         return [] 
         
     titulos = re.findall(
-        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 id=\"{titulo}\">(.*?)</h3>",
+        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\">(.*?)</h3>",
         content,
         re.DOTALL  # Permite que el '.' capture nuevas líneas
     )
@@ -186,7 +186,7 @@ def eliminar_log_por_titulo(file_name, titulo):
     
     # Usar una expresión regular para encontrar y eliminar todo el div con class 'version' que contenga el título específico
     nuevo_contenido = re.sub(
-        rf"<div class='version'>.*?<h2 id=\"{titulo}\">.*?</div>",
+        rf"<div class='version'>.*?<h3 id=\"{titulo}\">.*?</div>",
         "", 
         content, 
         flags=re.DOTALL
