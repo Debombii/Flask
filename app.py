@@ -181,18 +181,22 @@ def listar_titulos():
 def eliminar_log_por_titulo(file_name, titulo):
     content = get_file_content(file_name)
     if content is None:
+        logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
         return None
     
-    # Utiliza una expresión regular para encontrar y eliminar todo el div con class 'version' que contenga el título
+    # Usar una expresión regular para encontrar y eliminar todo el div con class 'version' que contenga el título específico
     nuevo_contenido = re.sub(
-        rf"<div class='version'>.*?<h2 id=\"{titulo}\">.*?</div>", 
+        rf"<div class='version'>.*?<h2 id=\"{titulo}\">.*?</div>",
         "", 
         content, 
         flags=re.DOTALL
     )
-
+    
     # Registro de la eliminación
-    logger.info(f'Log "{titulo}" y su contenedor eliminado del contenido del archivo {file_name}')
+    if content != nuevo_contenido:
+        logger.info(f'Log "{titulo}" y su contenedor eliminado del contenido del archivo {file_name}')
+    else:
+        logger.warning(f'No se encontró un log con el título "{titulo}" en el archivo {file_name}')
     
     return nuevo_contenido
 
@@ -233,6 +237,7 @@ def eliminar_log():
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
