@@ -141,6 +141,75 @@ def update_files(companies, body_content):
     except Exception as e:
         logger.error(f'Error: {e}')
 
+# Ruta para listar todos los títulos de los logs generados por una empresa
+@app.route('/listar-titulos', methods=['POST'])
+def listar_titulos():
+    try:
+        data = request.json
+        empresa = data.get('empresa')
+
+        TEMPLATE_HTML_NAME = {
+            'MRG': 'template_MRG.html',
+            'Rubicon': 'template_Rubi.html',
+            'GERP': 'template_GERP.html',
+            'Godiz': 'template_Godiz.html',
+            'OCC': 'template_OCC.html'
+        }
+
+        if empresa not in TEMPLATE_HTML_NAME:
+            return jsonify({'error': 'Empresa no válida'}), 400
+
+        file_name = TEMPLATE_HTML_NAME[empresa]
+        titulos = listar_titulos_logs(file_name)
+
+        return jsonify({'titulos': titulos}), 200
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({'error': 'Ocurrió un error interno'}), 500
+
+# Ruta para eliminar un log específico por título
+@app.route('/eliminar-log', methods=['POST'])
+def eliminar_log():
+    try:
+        data = request.json
+        empresa = data.get('empresa')
+        titulo = data.get('titulo')
+
+        TEMPLATE_HTML_NAME = {
+            'MRG': 'template_MRG.html',
+            'Rubicon': 'template_Rubi.html',
+            'GERP': 'template_GERP.html',
+            'Godiz': 'template_Godiz.html',
+            'OCC': 'template_OCC.html'
+        }
+
+        if empresa not in TEMPLATE_HTML_NAME:
+            return jsonify({'error': 'Empresa no válida'}), 400
+
+        file_name = TEMPLATE_HTML_NAME[empresa]
+        template_file_sha = find_file_sha_by_name(file_name)
+
+        if not template_file_sha:
+            return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+
+        # Obtener el contenido actualizado sin el log
+        nuevo_contenido = eliminar_log_por_titulo(file_name, titulo)
+        if nuevo_contenido is None:
+            return jsonify({'error': 'No se encontró el log con ese título'}), 400
+
+        # Actualizar el archivo en GitHub
+        nueva_sha = update_file_content(file_name, nuevo_contenido, template_file_sha)
+        if not nueva_sha:
+            return jsonify({'error': 'No se pudo actualizar el archivo'}), 500
+
+        return jsonify({'message': 'Log eliminado correctamente'}), 200
+
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        return jsonify({'error': 'Ocurrió un error interno'}), 500
+
+
 # Endpoint para recibir la compañía y contenido en lugar de un archivo
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
