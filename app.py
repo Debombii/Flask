@@ -183,7 +183,7 @@ def eliminar_log_por_titulo(file_name, titulo):
     if content is None:
         return None
     
-    # Utiliza el título directamente en la expresión regular
+    # Utiliza una expresión regular para encontrar y eliminar todo el div con class 'version' que contenga el título
     nuevo_contenido = re.sub(
         rf"<div class='version'>.*?<h2 id=\"{titulo}\">.*?</div>", 
         "", 
@@ -192,7 +192,7 @@ def eliminar_log_por_titulo(file_name, titulo):
     )
 
     # Registro de la eliminación
-    logger.info(f'Log "{titulo}" eliminado del contenido del archivo {file_name}')
+    logger.info(f'Log "{titulo}" y su contenedor eliminado del contenido del archivo {file_name}')
     
     return nuevo_contenido
 
