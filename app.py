@@ -183,15 +183,18 @@ def eliminar_log_por_titulo(file_name, titulo):
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
         return None
 
+    # Usar una expresión regular para encontrar y eliminar el div con class 'version'
     match = re.search(
-        rf"<div class='version'>\s*<h2 id=\"(.*?)\">.*?</h2>\s*<h3 class=\"titulo\" id=\"{titulo}\">.*?</h3>\s*.*?</div>",
+        rf"<div class='version'>\s*<h2 id=\"(.*?)\">(.*?)</h2>.*?<h3 class=\"titulo\" id=\".*?\">{titulo}</h3>.*?</div>",
         content, 
         flags=re.DOTALL
     )
 
     if match:
-        id_h2 = match.group(1)
-        
+        id_h2 = match.group(1)  # Capturamos el ID del h2
+        logger.info(f'Encontrado log "{titulo}" con ID "{id_h2}".')
+
+        # Eliminar el div 'version' correspondiente
         nuevo_contenido = re.sub(
             rf"<div class='version'>\s*<h2 id=\"{id_h2}\">.*?</div>",
             "", 
@@ -199,18 +202,20 @@ def eliminar_log_por_titulo(file_name, titulo):
             flags=re.DOTALL
         )
         
+        # Eliminar la línea del índice con el mismo id
         nuevo_contenido = re.sub(
             rf"<li><a href=\"#{id_h2}\">.*?</a></li>",
             "", 
-            nuevo_contenido
+            nuevo_contenido,
+            flags=re.DOTALL
         )
 
         logger.info(f'Log "{titulo}" y su contenedor eliminado del contenido del archivo {file_name}')
+        return nuevo_contenido  # Retornar el nuevo contenido actualizado
+
     else:
         logger.warning(f'No se encontró un log con el título "{titulo}" en el archivo {file_name}')
-        return content 
-
-    return nuevo_contenido
+        return content  # Retornar el contenido original si no se encontró el log
 
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
