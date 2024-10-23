@@ -9,24 +9,28 @@ import re
 app = Flask(__name__)
 CORS(app)
 
+# Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Token de GitHub desde variables de entorno
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
 
+# Funciones para interactuar con GitHub
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    logger.error(f"Buscando SHA para el archivo: {file_name}")
+    logger.info(f"Buscando SHA para el archivo: {file_name}")
+    
     response = requests.get(url, headers=headers)
     
     if response.status_code == 200:
         sha = response.json()['sha']
-        logger.error(f"SHA encontrado: {sha}")
+        logger.info(f"SHA encontrado: {sha}")
         return sha
     logger.error(f"Error al buscar SHA para {file_name}: {response.status_code} - {response.text}")
     return None
@@ -34,12 +38,13 @@ def find_file_sha_by_name(file_name):
 def get_file_content(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    logger.error(f"Obteniendo contenido del archivo: {file_name}")
+    logger.info(f"Obteniendo contenido del archivo: {file_name}")
+    
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
         content = base64.b64decode(response.json()['content']).decode('utf-8')
-        logger.error(f"Contenido obtenido correctamente para {file_name}")
+        logger.info(f"Contenido obtenido correctamente para {file_name}")
         return content
     logger.error(f"Error al obtener contenido de {file_name}: {response.status_code} - {response.text}")
     return None
@@ -56,92 +61,79 @@ def update_file_content(file_name, content, sha):
         'content': encoded_content,
         'sha': sha
     }
-    logger.error(f"Actualizando archivo: {file_name}")
+    logger.info(f"Actualizando archivo: {file_name}")
     response = requests.put(url, json=data, headers=headers)
 
     if response.status_code == 200:
         new_sha = response.json()['content']['sha']
-        logger.error(f"Archivo {file_name} actualizado correctamente. Nuevo SHA: {new_sha}")
+        logger.info(f"Archivo {file_name} actualizado correctamente. Nuevo SHA: {new_sha}")
         return new_sha
     logger.error(f"Error al actualizar el archivo {file_name}: {response.status_code} - {response.text}")
     return None
 
 def insertar_nuevo_contenido(template_html, new_div_html):
+    # Expresiones regulares para extraer título y fecha
     titulo_match = re.search(r'<h2 id="(.*?)">(.*?)</h2>', new_div_html)
     date_match = re.search(r'<p class=\'date\' id="date">(.*?)</p>', new_div_html)
 
-    if not titulo_match:
-        logger.error("No se encontró un título en el contenido nuevo.")
-        return None
-
-    if not date_match:
-        logger.error("No se encontró una fecha en el contenido nuevo.")
+    if not titulo_match or not date_match:
+        logger.error("No se encontró un título o fecha en el contenido nuevo.")
         return None 
 
     id_titulo = titulo_match.group(1)
     titulo = titulo_match.group(2)
     date = date_match.group(1)
 
+    # Insertar nuevo contenido en la plantilla
     template_html = re.sub(r'(<div class="content">)', r'\1\n' + new_div_html, template_html, 1)
-
     nueva_entrada_indice = f'<li><a href="#{id_titulo}">{titulo} - {date}</a></li>'
     template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
 
     return template_html
 
-
-
-# Función para manejar la actualización de archivos de manera secuencial
 def update_files(companies, body_content):
-    try:
-        TEMPLATE_HTML_NAME = {
-            'MRG': 'template_MRG.html',
-            'Rubicon': 'template_Rubi.html',
-            'GERP': 'template_GERP.html',
-            'Godiz': 'template_Godiz.html',
-            'OCC': 'template_OCC.html'
-        }
+    TEMPLATE_HTML_NAME = {
+        'MRG': 'template_MRG.html',
+        'Rubicon': 'template_Rubi.html',
+        'GERP': 'template_GERP.html',
+        'Godiz': 'template_Godiz.html',
+        'OCC': 'template_OCC.html'
+    }
 
-        for company in companies:
-            if company not in TEMPLATE_HTML_NAME:
-                logger.warning(f'Compañía inválida: {company}')
-                continue
+    for company in companies:
+        if company not in TEMPLATE_HTML_NAME:
+            logger.warning(f'Compañía inválida: {company}')
+            continue
 
-            TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
+        TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
 
-            # Buscar el archivo de plantilla en GitHub
-            template_file_sha = find_file_sha_by_name(TEMPLATE_NAME)
-            if not template_file_sha:
-                logger.error(f'Error: No se encontró el archivo de plantilla {TEMPLATE_NAME}')
-                continue
+        # Buscar y obtener el archivo de plantilla
+        template_file_sha = find_file_sha_by_name(TEMPLATE_NAME)
+        if not template_file_sha:
+            logger.error(f'No se encontró el archivo de plantilla {TEMPLATE_NAME}')
+            continue
 
-            # Obtener la plantilla desde GitHub
-            template_content = get_file_content(TEMPLATE_NAME)
-            if template_content is None:
-                logger.error(f'Error: No se pudo obtener el contenido del archivo de plantilla {TEMPLATE_NAME}')
-                continue
+        template_content = get_file_content(TEMPLATE_NAME)
+        if template_content is None:
+            logger.error(f'No se pudo obtener el contenido del archivo de plantilla {TEMPLATE_NAME}')
+            continue
 
-            # Insertar el nuevo contenido en la plantilla
-            resultado_html = insertar_nuevo_contenido(template_content, body_content)
+        # Insertar nuevo contenido
+        resultado_html = insertar_nuevo_contenido(template_content, body_content)
+        if resultado_html is None:
+            logger.error(f'Error al insertar contenido en la plantilla para {company}.')
+            continue
 
-            if resultado_html is None:
-                logger.error(f'Error al insertar contenido en la plantilla para {company}.')
-                continue
+        # Actualizar archivo en GitHub
+        upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html, template_file_sha)
+        if upload_file_sha is None:
+            logger.error(f'No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
+            continue
 
-            # Subir el archivo actualizado a GitHub
-            upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html, template_file_sha)
-            if upload_file_sha is None:
-                logger.error(f'Error: No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
-                continue
+        logger.info(f'Archivo actualizado correctamente para {company}')
 
-            logger.error(f'Archivo actualizado correctamente para {company}')
+    logger.info('Archivos actualizados correctamente para todas las empresas')
 
-        logger.error('Archivos actualizados correctamente para todas las empresas')
-
-    except Exception as e:
-        logger.error(f'Error: {e}')
-
-# Ruta para listar todos los títulos de los logs generados por una empresa
 @app.route('/listar-titulos', methods=['POST'])
 def listar_titulos():
     try:
@@ -168,7 +160,6 @@ def listar_titulos():
         logger.error(f"Error: {e}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
-# Ruta para eliminar un log específico por título
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
     try:
@@ -193,12 +184,11 @@ def eliminar_log():
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
 
-        # Obtener el contenido actualizado sin el log
+        # Obtener contenido actualizado sin el log
         nuevo_contenido = eliminar_log_por_titulo(file_name, titulo)
         if nuevo_contenido is None:
             return jsonify({'error': 'No se encontró el log con ese título'}), 400
 
-        # Actualizar el archivo en GitHub
         nueva_sha = update_file_content(file_name, nuevo_contenido, template_file_sha)
         if not nueva_sha:
             return jsonify({'error': 'No se pudo actualizar el archivo'}), 500
@@ -209,13 +199,11 @@ def eliminar_log():
         logger.error(f"Error: {e}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
-
-# Endpoint para recibir la compañía y contenido en lugar de un archivo
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
     try:
         data = request.json
-        logger.error(f"Datos recibidos: {data}")
+        logger.info(f"Datos recibidos: {data}")
 
         body_content = data.get('bodyContent')
         companies = data.get('companies', [])
@@ -226,7 +214,7 @@ def upload_file_endpoint():
         if not companies:
             return jsonify({'error': 'No se enviaron compañías'}), 400
 
-        # Ejecutar la actualización de archivos
+        # Ejecutar actualización de archivos
         update_files(companies, body_content)
 
         return jsonify({'message': 'Los archivos se han actualizado correctamente'}), 200
