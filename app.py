@@ -142,7 +142,7 @@ def listar_titulos_logs(file_name):
         return [] 
         
     titulos = re.findall(
-        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\">(.*?)</h3>",
+        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 id=\"{titulo}\">(.*?)</h3>",
         content,
         re.DOTALL  # Permite que el '.' capture nuevas líneas
     )
