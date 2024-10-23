@@ -202,7 +202,6 @@ def eliminar_log():
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
 
-        # Obtener contenido actualizado sin el log
         nuevo_contenido = eliminar_log_por_titulo(file_name, titulo)
         if nuevo_contenido is None:
             return jsonify({'error': 'No se encontró el log con ese título'}), 400
@@ -216,6 +215,22 @@ def eliminar_log():
     except Exception as e:
         logger.error(f"Error: {e}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
+def eliminar_log_por_titulo(file_name, titulo):
+    content = get_file_content(file_name)
+    if content is None:
+        return None
+    nuevo_contenido = re.sub(
+        rf"<div class='version'>.*?<h2 id=\"{titulo.id}\">.*?</div>", 
+        "", 
+        content, 
+        flags=re.DOTALL
+    )
+
+    # Registro de la eliminación
+    logger.info(f'Log "{titulo}" eliminado del contenido del archivo {file_name}')
+    
+    return nuevo_contenido
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
