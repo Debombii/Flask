@@ -5,6 +5,7 @@ import os
 import base64
 import logging
 import re
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -178,6 +179,24 @@ def listar_titulos():
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 
+def eliminar_log_por_titulo(file_name, titulo):
+    content = get_file_content(file_name)
+    if content is None:
+        return None
+    
+    # Utiliza el título directamente en la expresión regular
+    nuevo_contenido = re.sub(
+        rf"<div class='version'>.*?<h2 id=\"{titulo}\">.*?</div>", 
+        "", 
+        content, 
+        flags=re.DOTALL
+    )
+
+    # Registro de la eliminación
+    logger.info(f'Log "{titulo}" eliminado del contenido del archivo {file_name}')
+    
+    return nuevo_contenido
+
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
     try:
@@ -213,24 +232,8 @@ def eliminar_log():
         return jsonify({'message': 'Log eliminado correctamente'}), 200
 
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
-
-def eliminar_log_por_titulo(file_name, titulo):
-    content = get_file_content(file_name)
-    if content is None:
-        return None
-    nuevo_contenido = re.sub(
-        rf"<div class='version'>.*?<h2 id=\"{titulo.id}\">.*?</div>", 
-        "", 
-        content, 
-        flags=re.DOTALL
-    )
-
-    # Registro de la eliminación
-    logger.info(f'Log "{titulo}" eliminado del contenido del archivo {file_name}')
-    
-    return nuevo_contenido
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
