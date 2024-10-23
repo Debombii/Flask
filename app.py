@@ -134,6 +134,17 @@ def update_files(companies, body_content):
 
     logger.info('Archivos actualizados correctamente para todas las empresas')
 
+def listar_titulos_logs(file_name):
+    content = get_file_content(file_name)
+    if content is None:
+        logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
+        return []  # Retorna una lista vacía si no se pudo obtener el contenido
+
+    # Extrae los títulos
+    titulos = re.findall(r'<h2 id="(.*?)">(.*?)</h2>', content)
+    logger.info(f'Títulos encontrados: {titulos}')
+    return [{'id': t[0], 'titulo': t[1]} for t in titulos]
+
 @app.route('/listar-titulos', methods=['POST'])
 def listar_titulos():
     try:
@@ -157,8 +168,9 @@ def listar_titulos():
         return jsonify({'titulos': titulos}), 200
 
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
