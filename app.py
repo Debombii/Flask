@@ -135,23 +135,6 @@ def update_files(companies, body_content):
 
     logger.info('Archivos actualizados correctamente para todas las empresas')
 
-def listar_titulos_logs(file_name):
-    content = get_file_content(file_name)
-    if content is None:
-        logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
-        return [] 
-        
-    titulos = re.findall(
-        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\">(.*?)</h3>",
-        content,
-        re.DOTALL  # Permite que el '.' capture nuevas líneas
-    )
-
-    # Registro de títulos encontrados
-    logger.info(f'Títulos encontrados: {titulos}')
-    
-    return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
-
 @app.route('/listar-titulos', methods=['POST'])
 def listar_titulos():
     try:
@@ -178,6 +161,25 @@ def listar_titulos():
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
+def listar_titulos_logs(file_name):
+    content = get_file_content(file_name)
+    if content is None:
+        logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
+        return [] 
+
+    # Ajustar la expresión regular para extraer la información de la nueva estructura
+    titulos = re.findall(
+        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
+        content,
+        re.DOTALL  # Permite que el '.' capture nuevas líneas
+    )
+
+    # Registro de títulos encontrados
+    logger.info(f'Títulos encontrados: {titulos}')
+
+    # Devolver la lista de diccionarios con la información extraída
+    return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
+    
 def eliminar_log_por_titulo(file_name, titulo):
     content = get_file_content(file_name)
     if content is None:
