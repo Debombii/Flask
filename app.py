@@ -184,8 +184,9 @@ def eliminar_log_por_titulo(file_name, titulo):
         return None
 
     # Usar una expresión regular para encontrar y eliminar el div con class 'version'
+    # Modificado para que coincida exactamente con el título
     match = re.search(
-        rf"<div class='version'>\s*<h2 id=\"(.*?)\">(.*?)</h2>.*?<h3 class=\"titulo\" id=\".*?\">{titulo}</h3>.*?</div>",
+        rf"<div class='version'>\s*<h2 id=\"(.*?)\">(.*?)</h2>.*?<h3 class=\"titulo\" id=\".*?\">{re.escape(titulo)}</h3>.*?</div>",
         content, 
         flags=re.DOTALL
     )
@@ -216,6 +217,7 @@ def eliminar_log_por_titulo(file_name, titulo):
     else:
         logger.warning(f'No se encontró un log con el título "{titulo}" en el archivo {file_name}')
         return content  # Retornar el contenido original si no se encontró el log
+
 
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
