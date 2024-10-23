@@ -178,7 +178,6 @@ def listar_titulos():
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
-
 def eliminar_log_por_titulo(file_name, titulo):
     content = get_file_content(file_name)
     if content is None:
@@ -256,7 +255,7 @@ def upload_file_endpoint():
         return jsonify({'message': 'Los archivos se han actualizado correctamente'}), 200
 
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 @app.route('/')
