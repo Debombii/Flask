@@ -177,74 +177,52 @@ def listar_titulos_logs(file_name):
 
     return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
     
-def eliminar_log_por_titulo(file_name, titulo):
+def eliminar_logs_por_titulo(file_name, ids):
     content = get_file_content(file_name)
     if content is None:
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
         return None
 
-    # Expresión regular para encontrar todos los logs
-    pattern = re.compile(
-        r"<div class='version'>\s*<h2 id=\"(.*?)\">(.*?)</h2>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?</div>",
-        re.DOTALL
-    )
+    for id_h2 in ids:
+        logger.info(f'Eliminando log con ID "{id_h2}".')
 
-    logs = pattern.findall(content)
-
-    # Filtrar los logs para encontrar uno que coincida exactamente con el título
-    log_a_eliminar = None
-    for log in logs:
-        id_h2, _, log_titulo = log
-        if log_titulo.strip() == titulo:  # Comprobar coincidencia exacta
-            log_a_eliminar = (id_h2, log_titulo)
-            break  # Encontramos el log a eliminar, podemos salir del bucle
-
-    if log_a_eliminar:
-        id_h2, log_titulo = log_a_eliminar
-        logger.info(f'Encontrado log "{log_titulo}" con ID "{id_h2}".')
-
-        # Eliminar el div 'version' correspondiente
-        nuevo_contenido = re.sub(
+        content = re.sub(
             rf"<div class='version'>\s*<h2 id=\"{id_h2}\">.*?</div>",
             "", 
             content, 
             flags=re.DOTALL
         )
         
-        # Eliminar la línea del índice con el mismo id
-        nuevo_contenido = re.sub(
+        content = re.sub(
             rf"<li><a href=\"#{id_h2}\">.*?</a></li>",
             "", 
-            nuevo_contenido,
+            content,
             flags=re.DOTALL
         )
 
-        # Limpiar espacios en blanco y líneas vacías, pero mantener estructura
-        lines = nuevo_contenido.splitlines()
-        cleaned_lines = []
-        for line in lines:
-            stripped_line = line.strip()
-            if stripped_line:  # Si la línea no está vacía después de strip
-                cleaned_lines.append(line)  # Mantener la línea original
-            elif cleaned_lines:  # Si la línea está vacía pero ya hay líneas en cleaned_lines
-                cleaned_lines.append("")  # Mantener una línea vacía para la estructura
+    lines = content.splitlines()
+    cleaned_lines = []
+    for line in lines:
+        stripped_line = line.strip()
+        if stripped_line:
+            cleaned_lines.append(line) 
+        elif cleaned_lines: 
+            cleaned_lines.append("") 
 
-        nuevo_contenido = "\n".join(cleaned_lines)
+    nuevo_contenido = "\n".join(cleaned_lines)
 
-        logger.info(f'Log "{log_titulo}" y su contenedor eliminado del contenido del archivo {file_name}')
-        return nuevo_contenido  # Retornar el nuevo contenido actualizado
-
-    else:
-        logger.warning(f'No se encontró un log con el título exacto "{titulo}" en el archivo {file_name}')
-        return content  # Retornar el contenido original si no se encontró el log
-
+    logger.info(f'Logs con IDs {ids} eliminados del contenido del archivo {file_name}')
+    return nuevo_contenido 
 
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
     try:
         data = request.json
         empresa = data.get('empresa')
-        titulo = data.get('titulo')
+        ids = data.get('ids')
+
+        if not ids or not isinstance(ids, list):
+            return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
 
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
@@ -259,26 +237,24 @@ def eliminar_log():
 
         file_name = TEMPLATE_HTML_NAME[empresa]
 
-        # Obtener SHA del archivo
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
 
-        # Eliminar el log y obtener el nuevo contenido
-        nuevo_contenido = eliminar_log_por_titulo(file_name, titulo)
+        nuevo_contenido = eliminar_logs_por_titulo(file_name, ids)
         if nuevo_contenido is None:
-            return jsonify({'error': 'No se encontró el log con ese título'}), 400
+            return jsonify({'error': 'No se encontró ningún log con los ids proporcionados'}), 400
 
-        # Actualizar el contenido en GitHub
         nueva_sha = update_file_content(file_name, nuevo_contenido, template_file_sha)
         if not nueva_sha:
             return jsonify({'error': 'No se pudo actualizar el archivo'}), 500
 
-        return jsonify({'message': 'Log eliminado correctamente'}), 200
+        return jsonify({'message': 'Logs eliminados correctamente'}), 200
 
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 
 @app.route('/upload-file', methods=['POST'])
