@@ -10,18 +10,15 @@ import traceback
 app = Flask(__name__)
 CORS(app)
 
-# Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Token de GitHub desde variables de entorno
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
 
-# Funciones para interactuar con GitHub
 def find_file_sha_by_name(file_name):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
@@ -54,7 +51,6 @@ def update_file_content(file_name, content, sha):
     url = f'https://api.github.com/repos/Debombii/React/contents/public/{file_name}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     
-    # Codificar el contenido en base64
     encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
     
     data = {
@@ -73,7 +69,6 @@ def update_file_content(file_name, content, sha):
     return None
 
 def insertar_nuevo_contenido(template_html, new_div_html):
-    # Expresiones regulares para extraer título y fecha
     titulo_match = re.search(r'<h2 id="(.*?)">(.*?)</h2>', new_div_html)
     date_match = re.search(r'<p class=\'date\' id="date">(.*?)</p>', new_div_html)
 
@@ -85,7 +80,6 @@ def insertar_nuevo_contenido(template_html, new_div_html):
     titulo = titulo_match.group(2)
     date = date_match.group(1)
 
-    # Insertar nuevo contenido en la plantilla
     template_html = re.sub(r'(<div class="content">)', r'\1\n' + new_div_html, template_html, 1)
     nueva_entrada_indice = f'<li><a href="#{id_titulo}">{titulo} - {date}</a></li>'
     template_html = re.sub(r'(<ul id="indice">)', r'\1\n' + nueva_entrada_indice, template_html, 1)
@@ -108,7 +102,6 @@ def update_files(companies, body_content):
 
         TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
 
-        # Buscar y obtener el archivo de plantilla
         template_file_sha = find_file_sha_by_name(TEMPLATE_NAME)
         if not template_file_sha:
             logger.error(f'No se encontró el archivo de plantilla {TEMPLATE_NAME}')
@@ -119,13 +112,11 @@ def update_files(companies, body_content):
             logger.error(f'No se pudo obtener el contenido del archivo de plantilla {TEMPLATE_NAME}')
             continue
 
-        # Insertar nuevo contenido
         resultado_html = insertar_nuevo_contenido(template_content, body_content)
         if resultado_html is None:
             logger.error(f'Error al insertar contenido en la plantilla para {company}.')
             continue
 
-        # Actualizar archivo en GitHub
         upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html, template_file_sha)
         if upload_file_sha is None:
             logger.error(f'No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
@@ -170,7 +161,7 @@ def listar_titulos_logs(file_name):
     titulos = re.findall(
         r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
         content,
-        re.DOTALL  # Permite que el '.' capture nuevas líneas
+        re.DOTALL 
     )
 
     logger.info(f'Títulos encontrados: {titulos}')
@@ -202,17 +193,23 @@ def eliminar_logs_por_titulo(file_name, ids):
 
     lines = content.splitlines()
     cleaned_lines = []
+    previous_line_empty = False
+
     for line in lines:
         stripped_line = line.strip()
+
         if stripped_line:
-            cleaned_lines.append(line) 
-        elif cleaned_lines: 
-            cleaned_lines.append("") 
+            cleaned_lines.append(line)  
+            previous_line_empty = False
+        elif not previous_line_empty:
+            cleaned_lines.append("")  
+            previous_line_empty = True 
 
     nuevo_contenido = "\n".join(cleaned_lines)
 
     logger.info(f'Logs con IDs {ids} eliminados del contenido del archivo {file_name}')
-    return nuevo_contenido 
+    return nuevo_contenido
+
 
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
@@ -272,7 +269,6 @@ def upload_file_endpoint():
         if not companies:
             return jsonify({'error': 'No se enviaron compañías'}), 400
 
-        # Ejecutar actualización de archivos
         update_files(companies, body_content)
 
         return jsonify({'message': 'Los archivos se han actualizado correctamente'}), 200
