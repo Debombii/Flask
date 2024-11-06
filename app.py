@@ -292,21 +292,24 @@ def modificar_log():
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
         logger.info(f'Modificando log con ID "{id_h2}".')
+        nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower()
         pattern = rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">)(.*?)(</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\".*?\">)(.*?)(</h3>.*?<h3 class=\"titular\".*?>)(.*?)(</div>)"
         content = re.sub(
             pattern,
-            r"\1" + nuevo_titulo + r"\3" + nuevo_contenido + r"\7",  # Nuevo título y contenido.
+            r"\1" + r"\2" + r"\3" + f'id="{nuevo_id_titulo}"' + nuevo_titulo + r"\5" + nuevo_contenido + r"\7",  # Actualizamos el id y el contenido
             content,
             flags=re.DOTALL
         )
-        nuevo_id = re.sub(r'\s+', '-', nuevo_titulo).lower()
+        nuevo_id_h2 = re.sub(r'\s+', '-', nuevo_titulo).lower()
         content = re.sub(
             rf"<h2 id=\"{id_h2}\">", 
-            f"<h2 id=\"{nuevo_id}\">", 
+            f"<h2 id=\"{nuevo_id_h2}\">", 
             content
         )
+
     logger.info(f'Logs con IDs {ids} modificados.')
     return content
+
 
 @app.route('/obtener-log', methods=['POST'])
 def obtener_log():
