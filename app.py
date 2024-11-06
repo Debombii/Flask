@@ -292,17 +292,29 @@ def modificar_log():
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
         logger.info(f'Modificando log con ID "{id_h2}".')
-        nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower()
-        pattern = rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">)(.*?)(</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\")(.*?)(\">)(.*?)(</h3>.*?<h3 class=\"titular\".*?>)(.*?)(</div>)"
+        nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower() 
+        pattern_titulo = rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
         content = re.sub(
-            pattern,
-            r"\1\2\3" + nuevo_id_titulo + r"\5" + nuevo_titulo + r"\7" + nuevo_contenido + r"\9",
+            pattern_titulo,
+            r"\1" + nuevo_id_titulo + r"\2" + nuevo_titulo + r"\4",
             content,
             flags=re.DOTALL
         )
+        pattern_titular = rf"(<h3 class=\"titular\">)(.*?)(</h3>)"
+        titular_content_match = re.search(pattern_titular, content, flags=re.DOTALL)
+        if titular_content_match:
+            titular_content = titular_content_match.group(2)  # Guardar el contenido del titular
+        content_after_titular_pattern = rf"(<h3 class=\"titular\">.*?</h3>)(.*?)(</div>)"
+        content = re.sub(
+            content_after_titular_pattern,
+            r"\1" + nuevo_contenido + r"\3",
+            content,
+            flags=re.DOTALL
+        )
+        logger.info(f'Log con ID "{id_h2}" modificado.')
 
-    logger.info(f'Logs con IDs {ids} modificados.')
     return content
+
 
 
 @app.route('/obtener-log', methods=['POST'])
