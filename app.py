@@ -292,9 +292,10 @@ def modificar_log():
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
         logger.info(f'Modificando log con ID "{id_h2}".')
+        pattern = rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">)(.*?)(</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\".*?\">)(.*?)(</h3>.*?<h3 class=\"titular\".*?>)(.*?)(</div>)"
         content = re.sub(
-            rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">)(.*?)(</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\".*?\">).*?</h3>(.*?<p>).*?</p>",
-            r"\1" + nuevo_titulo + r"\3" + nuevo_contenido + r"</p>",
+            pattern,
+            r"\1" + nuevo_titulo + r"\3" + nuevo_contenido + r"\7",  # Nuevo título y contenido.
             content,
             flags=re.DOTALL
         )
@@ -304,7 +305,6 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
             f"<h2 id=\"{nuevo_id}\">", 
             content
         )
-
     logger.info(f'Logs con IDs {ids} modificados.')
     return content
 
