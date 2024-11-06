@@ -335,7 +335,12 @@ def obtener_log():
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
         contenido_log = obtener_contenido_log(template_content, id_log)
         if contenido_log:
-            return jsonify({'titulo': contenido_log['titulo'], 'contenido': contenido_log['contenido']}), 200
+            return jsonify({
+                'id': contenido_log['id'],
+                'titulo': contenido_log['titulo'],
+                'contenido': contenido_log['contenido'],
+                'fecha': contenido_log['fecha']
+            }), 200
         else:
             return jsonify({'error': 'Log no encontrado'}), 404
     except Exception as e:
@@ -344,29 +349,31 @@ def obtener_log():
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titular\" id=\".*?\">(.*?)</h3>(.*?)</div>",
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
     
     if match:
-        titulo = match.group(1)  # El título dentro del <h3 class="titular">
-        cuerpo = match.group(2)  # El contenido debajo del <h3 class="titular">
+        log_id = match.group(1)
+        fecha = match.group(2)
+        titulo = match.group(3)
+        contenido = match.group(5)
         elementos = []
-        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', cuerpo, flags=re.DOTALL):
-            tag = elemento.group(1)  # Tipo de etiqueta (p, a, h2, h3)
-            contenido = elemento.group(3).strip()  # El contenido dentro del tag, limpio
-            if contenido:
-                # Añadir el tag con su contenido
-                elementos.append(f"<{tag}>{contenido}</{tag}>")
+        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido, flags=re.DOTALL):
+            tag = elemento.group(1)
+            contenido_tag = elemento.group(3).strip()
+            if contenido_tag:
+                elementos.append(f"<{tag}>{contenido_tag}</{tag}>")
         contenido_completo = "\n".join(elementos)
-
         return {
+            'id': log_id,
             'titulo': titulo,
-            'contenido': contenido_completo
+            'contenido': contenido_completo,
+            'fecha': fecha
         }
-    
     return None
+
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
