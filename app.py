@@ -252,6 +252,101 @@ def eliminar_log():
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
+@app.route('/modificar-log', methods=['POST'])
+def modificar_log():
+    try:
+        data = request.json
+        empresa = data.get('empresa')
+        ids = data.get('ids') 
+        nuevo_titulo = data.get('nuevoTitulo')
+        nuevo_contenido = data.get('nuevoContenido')
+        if not ids or not isinstance(ids, list):
+            return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
+        if not nuevo_titulo or not nuevo_contenido:
+            return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
+        TEMPLATE_HTML_NAME = {
+            'MRG': 'template_MRG.html',
+            'Rubicon': 'template_Rubi.html',
+            'GERP': 'template_GERP.html',
+            'Godiz': 'template_Godiz.html',
+            'OCC': 'template_OCC.html'
+        }
+        if empresa not in TEMPLATE_HTML_NAME:
+            return jsonify({'error': 'Empresa no válida'}), 400
+        file_name = TEMPLATE_HTML_NAME[empresa]
+        template_file_sha = find_file_sha_by_name(file_name)
+        if not template_file_sha:
+            return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+        template_content = get_file_content(file_name)
+        if template_content is None:
+            return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
+        nuevo_contenido_html = modificar_logs(template_content, ids, nuevo_titulo, nuevo_contenido)
+        new_sha = update_file_content(file_name, nuevo_contenido_html, template_file_sha)
+        if not new_sha:
+            return jsonify({'error': 'No se pudo actualizar el archivo en GitHub'}), 500
+        return jsonify({'message': 'Logs modificados correctamente'}), 200
+    except Exception as e:
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': 'Ocurrió un error interno'}), 500
+
+def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
+    for id_h2 in ids:
+        logger.info(f'Modificando log con ID "{id_h2}".')
+        content = re.sub(
+            rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\".*?\">).*?</h3>(.*?<p>).*?</p>",
+            r"\1" + nuevo_titulo + r"\2" + nuevo_contenido + r"</p>",
+            content,
+            flags=re.DOTALL
+        )
+    logger.info(f'Logs con IDs {ids} modificados.')
+    return content
+
+@app.route('/obtener-log', methods=['POST'])
+def obtener_log():
+    try:
+        data = request.json
+        empresa = data.get('empresa')
+        id_log = data.get('id')
+        if not id_log:
+            return jsonify({'error': 'Debe proporcionar el ID del log'}), 400
+        TEMPLATE_HTML_NAME = {
+            'MRG': 'template_MRG.html',
+            'Rubicon': 'template_Rubi.html',
+            'GERP': 'template_GERP.html',
+            'Godiz': 'template_Godiz.html',
+            'OCC': 'template_OCC.html'
+        }
+        if empresa not in TEMPLATE_HTML_NAME:
+            return jsonify({'error': 'Empresa no válida'}), 400
+        file_name = TEMPLATE_HTML_NAME[empresa]
+
+        template_file_sha = find_file_sha_by_name(file_name)
+        if not template_file_sha:
+            return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+        template_content = get_file_content(file_name)
+        if template_content is None:
+            return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
+        contenido_log = obtener_contenido_log(template_content, id_log)
+        if contenido_log:
+            return jsonify({'titulo': contenido_log['titulo'], 'contenido': contenido_log['contenido']}), 200
+        else:
+            return jsonify({'error': 'Log no encontrado'}), 404
+    except Exception as e:
+        logger.error(f"Error: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': 'Ocurrió un error interno'}), 500
+
+def obtener_contenido_log(content, id_log):
+    match = re.search(
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<p>(.*?)</p>",
+        content,
+        flags=re.DOTALL
+    )
+    if match:
+        return {
+            'titulo': match.group(1), 
+            'contenido': match.group(2)
+        }
+    return None
 
 
 @app.route('/upload-file', methods=['POST'])
@@ -280,6 +375,7 @@ def upload_file_endpoint():
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
