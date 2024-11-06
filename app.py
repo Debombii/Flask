@@ -344,17 +344,29 @@ def obtener_log():
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<p>(.*?)</p>",
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titular\" id=\".*?\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
+    
     if match:
-        return {
-            'titulo': match.group(1), 
-            'contenido': match.group(2)
-        }
-    return None
+        titulo = match.group(1)  # El título dentro del <h3 class="titular">
+        cuerpo = match.group(2)  # El contenido debajo del <h3 class="titular">
+        elementos = []
+        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', cuerpo, flags=re.DOTALL):
+            tag = elemento.group(1)  # Tipo de etiqueta (p, a, h2, h3)
+            contenido = elemento.group(3).strip()  # El contenido dentro del tag, limpio
+            if contenido:
+                # Añadir el tag con su contenido
+                elementos.append(f"<{tag}>{contenido}</{tag}>")
+        contenido_completo = "\n".join(elementos)
 
+        return {
+            'titulo': titulo,
+            'contenido': contenido_completo
+        }
+    
+    return None
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
