@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
@@ -93,26 +94,29 @@ def update_files(companies, body_content):
         'Godiz': 'template_Godiz.html',
         'OCC': 'template_OCC.html'
     }
-    if not body_content:
-        logger.error("El contenido del cuerpo está vacío")
-        return
+
     for company in companies:
         if company not in TEMPLATE_HTML_NAME:
             logger.warning(f'Compañía inválida: {company}')
             continue
+
         TEMPLATE_NAME = TEMPLATE_HTML_NAME[company]
+
         template_file_sha = find_file_sha_by_name(TEMPLATE_NAME)
         if not template_file_sha:
             logger.error(f'No se encontró el archivo de plantilla {TEMPLATE_NAME}')
             continue
+
         template_content = get_file_content(TEMPLATE_NAME)
         if template_content is None:
             logger.error(f'No se pudo obtener el contenido del archivo de plantilla {TEMPLATE_NAME}')
             continue
+
         resultado_html = insertar_nuevo_contenido(template_content, body_content)
         if resultado_html is None:
             logger.error(f'Error al insertar contenido en la plantilla para {company}.')
             continue
+
         upload_file_sha = update_file_content(TEMPLATE_NAME, resultado_html, template_file_sha)
         if upload_file_sha is None:
             logger.error(f'No se pudo actualizar el archivo en GitHub para la plantilla {TEMPLATE_NAME}')
@@ -121,7 +125,6 @@ def update_files(companies, body_content):
         logger.info(f'Archivo actualizado correctamente para {company}')
 
     logger.info('Archivos actualizados correctamente para todas las empresas')
-
 
 @app.route('/listar-titulos', methods=['POST'])
 def listar_titulos():
@@ -356,19 +359,19 @@ def obtener_log():
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\" class=\"base\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\">(.*?)</h3>(.*?)</div>"
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\" class=\"base\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
     if match:
-        log_id = match.group(1)
-        fecha = match.group(2)
-        titulo = match.group(3)
-        contenido = match.group(5)
+        log_id = match.group(1)  # El id del log
+        fecha = match.group(2)  # La fecha
+        titulo = match.group(3)  # El título
+        contenido = match.group(5)  # Todo el contenido después del cierre de "titular"
         return {
             'id': log_id,
             'titulo': titulo,
-            'contenido': contenido,
+            'contenido': contenido,  # El contenido capturado después del "titular"
             'fecha': fecha
         }
     return None
