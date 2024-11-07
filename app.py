@@ -159,7 +159,7 @@ def listar_titulos_logs(file_name):
         return [] 
 
     titulos = re.findall(
-        r"<div class='version'>.*?<h2[^>]*id=\"(.*?)\"[^>]*>(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
+        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
         content,
         re.DOTALL
     )
@@ -177,16 +177,17 @@ def eliminar_logs_por_titulo(file_name, ids):
 
     for id_h2 in ids:
         logger.info(f'Eliminando log con ID "{id_h2}".')
+        
         content = re.sub(
-            rf"<div class='version'>\s*<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</div>",
-            "", 
-            content, 
+            rf"<div class='version'>\s*<h2 id=\"{id_h2}\">.*?</div>",
+            "",
+            content,
             flags=re.DOTALL
         )
         
         content = re.sub(
-            rf"<li><a href=\"#{id_h2}\">.*?</a></li>",
-            "", 
+            rf"<li><a href=\"#{id_h2}\" class=\"base\">.*?</a></li>",
+            "",
             content,
             flags=re.DOTALL
         )
@@ -199,17 +200,16 @@ def eliminar_logs_por_titulo(file_name, ids):
         stripped_line = line.strip()
 
         if stripped_line:
-            cleaned_lines.append(line)  
+            cleaned_lines.append(line)
             previous_line_empty = False
         elif not previous_line_empty:
-            cleaned_lines.append("")  
-            previous_line_empty = True 
+            cleaned_lines.append("")
+            previous_line_empty = True
 
     nuevo_contenido = "\n".join(cleaned_lines)
 
     logger.info(f'Logs con IDs {ids} eliminados del contenido del archivo {file_name}')
     return nuevo_contenido
-
 
 
 @app.route('/eliminar-log', methods=['POST'])
