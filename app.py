@@ -9,7 +9,6 @@ import traceback
 
 app = Flask(__name__)
 CORS(app)
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
