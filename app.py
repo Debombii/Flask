@@ -7,7 +7,6 @@ import base64
 import logging
 import re
 import traceback
-import pako
 
 app = Flask(__name__)
 CORS(app)
@@ -258,23 +257,15 @@ def modificar_log():
         if not nuevo_titulo or not nuevo_contenido:
             return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
 
-        TEMPLATE_HTML_NAME = {
-            'MRG': 'template_MRG.html',
-            'Rubicon': 'template_Rubi.html',
-            'GERP': 'template_GERP.html',
-            'Godiz': 'template_Godiz.html',
-            'OCC': 'template_OCC.html'
-        }
-
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
+        
         file_name = TEMPLATE_HTML_NAME[empresa]
         
-        decoded_content = base64.b64decode(nuevo_contenido)  
-        decoded_content = decoded_content.decode('utf-8')  
+        decoded_content = base64.b64decode(nuevo_contenido).decode('utf-8')
         
         try:
-            decompressed_content = pako.ungzip(decoded_content.encode('utf-8'), { 'to': 'string' })
+            decompressed_content = zlib.decompress(decoded_content.encode('utf-8')).decode('utf-8')
         except Exception as e:
             logger.error(f"Error al descomprimir el contenido: {e}")
             return jsonify({'error': 'Error al descomprimir el contenido'}), 400
@@ -299,11 +290,12 @@ def modificar_log():
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
-
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
         logger.info(f'Modificando log con ID "{id_h2}".')
+        
         nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower() 
+
         pattern_titulo = rf"(<div class='version'>.*?<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
         content = re.sub(
             pattern_titulo,
@@ -340,20 +332,16 @@ def obtener_log():
         id_log = data.get('id')
         if not id_log:
             return jsonify({'error': 'Debe proporcionar el ID del log'}), 400
-        TEMPLATE_HTML_NAME = {
-            'MRG': 'template_MRG.html',
-            'Rubicon': 'template_Rubi.html',
-            'GERP': 'template_GERP.html',
-            'Godiz': 'template_Godiz.html',
-            'OCC': 'template_OCC.html'
-        }
+        
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
+        
         file_name = TEMPLATE_HTML_NAME[empresa]
-
+        
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+        
         template_content = get_file_content(file_name)
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
