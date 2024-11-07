@@ -2,10 +2,12 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import requests
 import os
+import zlib
 import base64
 import logging
 import re
 import traceback
+import pako
 
 app = Flask(__name__)
 CORS(app)
@@ -257,13 +259,15 @@ def modificar_log():
     try:
         data = request.json
         empresa = data.get('empresa')
-        ids = data.get('ids') 
+        ids = data.get('ids')
         nuevo_titulo = data.get('nuevoTitulo')
         nuevo_contenido = data.get('nuevoContenido')
+
         if not ids or not isinstance(ids, list):
             return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
         if not nuevo_titulo or not nuevo_contenido:
             return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
+
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
@@ -271,23 +275,40 @@ def modificar_log():
             'Godiz': 'template_Godiz.html',
             'OCC': 'template_OCC.html'
         }
+
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
         file_name = TEMPLATE_HTML_NAME[empresa]
+        
+        decoded_content = base64.b64decode(nuevo_contenido)  
+        decoded_content = decoded_content.decode('utf-8')  
+        
+        try:
+            decompressed_content = pako.ungzip(decoded_content.encode('utf-8'), { 'to': 'string' })
+        except Exception as e:
+            logger.error(f"Error al descomprimir el contenido: {e}")
+            return jsonify({'error': 'Error al descomprimir el contenido'}), 400
+
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+
         template_content = get_file_content(file_name)
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
-        nuevo_contenido_html = modificar_logs(template_content, ids, nuevo_titulo, nuevo_contenido)
+        
+        nuevo_contenido_html = modificar_logs(template_content, ids, nuevo_titulo, decompressed_content)
+        
         new_sha = update_file_content(file_name, nuevo_contenido_html, template_file_sha)
         if not new_sha:
             return jsonify({'error': 'No se pudo actualizar el archivo en GitHub'}), 500
+
         return jsonify({'message': 'Logs modificados correctamente'}), 200
+    
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
@@ -317,6 +338,10 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
 
     return content
 
+def compress_data(data):
+    compressed_data = zlib.compress(data.encode('utf-8'))
+    return base64.b64encode(compressed_data).decode('utf-8')
+
 @app.route('/obtener-log', methods=['POST'])
 def obtener_log():
     try:
@@ -342,12 +367,14 @@ def obtener_log():
         template_content = get_file_content(file_name)
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
+        
         contenido_log = obtener_contenido_log(template_content, id_log)
         if contenido_log:
+            compressed_contenido = compress_data(contenido_log['contenido'])
             return jsonify({
                 'id': contenido_log['id'],
                 'titulo': contenido_log['titulo'],
-                'contenido': contenido_log['contenido'],
+                'contenido': compressed_contenido,
                 'fecha': contenido_log['fecha']
             }), 200
         else:
