@@ -318,9 +318,6 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
 
     return content
 
-
-
-
 @app.route('/obtener-log', methods=['POST'])
 def obtener_log():
     try:
@@ -362,7 +359,7 @@ def obtener_log():
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
+        rf"<div class='version'>.*?<h2 class=\"base\" id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
@@ -373,7 +370,11 @@ def obtener_contenido_log(content, id_log):
         titulo = match.group(3)
         contenido = match.group(5)
         elementos = []
-        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido, flags=re.DOTALL):
+        
+        titular_pattern = r'<h3 class="titular">.*?</h3>'
+        contenido_sin_titular = re.sub(titular_pattern, '', contenido, flags=re.DOTALL)
+
+        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido_sin_titular, flags=re.DOTALL):
             tag = elemento.group(1)
             contenido_tag = elemento.group(3).strip()
             if contenido_tag:
@@ -386,6 +387,7 @@ def obtener_contenido_log(content, id_log):
             'fecha': fecha
         }
     return None
+
 
 
 @app.route('/upload-file', methods=['POST'])
