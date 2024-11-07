@@ -330,38 +330,55 @@ def obtener_log():
         data = request.json
         empresa = data.get('empresa')
         id_log = data.get('id')
+
         if not id_log:
+            logger.error("ID del log no proporcionado.")
             return jsonify({'error': 'Debe proporcionar el ID del log'}), 400
         
         if empresa not in TEMPLATE_HTML_NAME:
+            logger.error(f"Empresa no válida: {empresa}")
             return jsonify({'error': 'Empresa no válida'}), 400
         
         file_name = TEMPLATE_HTML_NAME[empresa]
         
+        logger.debug(f"Buscando archivo para la empresa {empresa}: {file_name}")
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
+            logger.error(f"No se encontró el archivo de la empresa: {file_name}")
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
         
+        logger.debug(f"Obteniendo contenido del archivo {file_name}")
         template_content = get_file_content(file_name)
         if template_content is None:
+            logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
         
+        logger.debug(f"Buscando el log con ID {id_log} en el contenido del archivo.")
         contenido_log = obtener_contenido_log(template_content, id_log)
+        
         if contenido_log:
+            logger.debug(f"Log encontrado: {contenido_log['id']} - {contenido_log['titulo']}")
             # Convertir el contenido a Base64
-            contenido_base64 = base64.b64encode(contenido_log['contenido'].encode('utf-8')).decode('utf-8')
-            
-            return jsonify({
-                'id': contenido_log['id'],
-                'titulo': contenido_log['titulo'],
-                'contenido': contenido_base64,  # Se envía el contenido en Base64
-                'fecha': contenido_log['fecha']
-            }), 200
+            try:
+                contenido_base64 = base64.b64encode(contenido_log['contenido'].encode('utf-8')).decode('utf-8')
+                return jsonify({
+                    'id': contenido_log['id'],
+                    'titulo': contenido_log['titulo'],
+                    'contenido': contenido_base64,  # Se envía el contenido en Base64
+                    'fecha': contenido_log['fecha']
+                }), 200
+            except Exception as base64_error:
+                logger.error(f"Error al convertir el contenido del log a Base64: {base64_error}")
+                return jsonify({'error': 'Error interno al procesar el contenido del log'}), 500
         else:
+            logger.error(f"Log no encontrado con el ID: {id_log}")
             return jsonify({'error': 'Log no encontrado'}), 404
+
     except Exception as e:
-        logger.error(f"Error: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error inesperado: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
+
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
