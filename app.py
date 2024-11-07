@@ -211,7 +211,6 @@ def eliminar_logs_por_titulo(file_name, ids):
     return nuevo_contenido
 
 
-
 @app.route('/eliminar-log', methods=['POST'])
 def eliminar_log():
     try:
@@ -241,10 +240,10 @@ def eliminar_log():
 
         nuevo_contenido = eliminar_logs_por_titulo(file_name, ids)
         if nuevo_contenido is None:
-            return jsonify({'error': 'No se encontró ningún log con los ids proporcionados'}), 400
+            return jsonify({'error': 'Ocurrió un error al eliminar los logs'}), 500
 
-        nueva_sha = update_file_content(file_name, nuevo_contenido, template_file_sha)
-        if not nueva_sha:
+        upload_file_sha = update_file_content(file_name, nuevo_contenido, template_file_sha)
+        if upload_file_sha is None:
             return jsonify({'error': 'No se pudo actualizar el archivo'}), 500
 
         return jsonify({'message': 'Logs eliminados correctamente'}), 200
@@ -364,14 +363,14 @@ def obtener_contenido_log(content, id_log):
         flags=re.DOTALL
     )
     if match:
-        log_id = match.group(1)  # El id del log
-        fecha = match.group(2)  # La fecha
-        titulo = match.group(3)  # El título
-        contenido = match.group(5)  # Todo el contenido después del cierre de "titular"
+        log_id = match.group(1) 
+        fecha = match.group(2)
+        titulo = match.group(3) 
+        contenido = match.group(5) 
         return {
             'id': log_id,
             'titulo': titulo,
-            'contenido': contenido,  # El contenido capturado después del "titular"
+            'contenido': contenido, 
             'fecha': fecha
         }
     return None
@@ -400,7 +399,7 @@ def upload_file_endpoint():
 
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
-        return jsonify({'error': 'Ocurrió un error interno'}), 500
+        return jsonify({'error': 'Ocurrió un error interno'}), 50
 
 @app.route('/')
 def index():
