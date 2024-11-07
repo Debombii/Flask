@@ -368,7 +368,6 @@ def obtener_log():
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 def obtener_contenido_log(content, id_log):
-    # Ajustar la expresión regular para capturar el título y el contenido entre el cierre de h3 y cierre del div class "version"
     match = re.search(
         rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?"
         rf"<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>(.*?)</div>",
@@ -382,7 +381,6 @@ def obtener_contenido_log(content, id_log):
         titulo = match.group(3)
         contenido = match.group(4)
 
-        # Limpiar el contenido para incluir solo etiquetas HTML dentro del div y después del cierre de h3
         elementos = []
         for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido, flags=re.DOTALL):
             tag = elemento.group(1)
