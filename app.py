@@ -258,13 +258,15 @@ def modificar_log():
     try:
         data = request.json
         empresa = data.get('empresa')
-        ids = data.get('ids') 
+        ids = data.get('ids')
         nuevo_titulo = data.get('nuevoTitulo')
         nuevo_contenido = data.get('nuevoContenido')
+        
         if not ids or not isinstance(ids, list):
             return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
         if not nuevo_titulo or not nuevo_contenido:
             return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
+        
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
@@ -274,18 +276,27 @@ def modificar_log():
         }
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
+        
         file_name = TEMPLATE_HTML_NAME[empresa]
+        
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
-        template_content = get_file_content(file_name)
-        if template_content is None:
+
+        template_content_base64 = get_file_content(file_name)
+        if template_content_base64 is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
+        
+        template_content = base64.b64decode(template_content_base64).decode('utf-8')
+        
         nuevo_contenido_html = modificar_logs(template_content, ids, nuevo_titulo, nuevo_contenido)
-        new_sha = update_file_content(file_name, nuevo_contenido_html, template_file_sha)
+        
+        new_sha = update_file_content(file_name, base64.b64encode(nuevo_contenido_html.encode('utf-8')).decode('utf-8'), template_file_sha)
         if not new_sha:
             return jsonify({'error': 'No se pudo actualizar el archivo en GitHub'}), 500
+        
         return jsonify({'message': 'Logs modificados correctamente'}), 200
+    
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
@@ -293,7 +304,9 @@ def modificar_log():
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
         logger.info(f'Modificando log con ID "{id_h2}".')
-        nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower() 
+        
+        nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower()
+        
         pattern_titulo = rf"(<div class='version'>.*?<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
         content = re.sub(
             pattern_titulo,
@@ -302,22 +315,17 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
             flags=re.DOTALL
         )
 
-        pattern_titular = rf"(<h3 class=\"titular\">)(.*?)(</h3>)"
-        titular_content_match = re.search(pattern_titular, content, flags=re.DOTALL)
-        if titular_content_match:
-            titular_content = titular_content_match.group(2) 
-        
-        content_after_titular_pattern = rf"(<h3 class=\"titular\">.*?</h3>)(.*?)(</div>)"
+        pattern_contenido = rf"(<h3 class=\"titulo\" id=\"{nuevo_id_titulo}\">.*?</h3>)(.*?)(</div>)"
         content = re.sub(
-            content_after_titular_pattern,
+            pattern_contenido,
             r"\1" + nuevo_contenido + r"\3",
             content,
             flags=re.DOTALL
         )
+        
         logger.info(f'Log con ID "{id_h2}" modificado.')
 
     return content
-
 
 
 
@@ -329,6 +337,7 @@ def obtener_log():
         id_log = data.get('id')
         if not id_log:
             return jsonify({'error': 'Debe proporcionar el ID del log'}), 400
+
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
             'Rubicon': 'template_Rubi.html',
@@ -336,16 +345,19 @@ def obtener_log():
             'Godiz': 'template_Godiz.html',
             'OCC': 'template_OCC.html'
         }
+        
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
-        file_name = TEMPLATE_HTML_NAME[empresa]
 
+        file_name = TEMPLATE_HTML_NAME[empresa]
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+
         template_content = get_file_content(file_name)
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
+
         contenido_log = obtener_contenido_log(template_content, id_log)
         if contenido_log:
             return jsonify({
@@ -361,24 +373,30 @@ def obtener_log():
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 def obtener_contenido_log(content, id_log):
+    # Ajustar la expresión regular para capturar el título y el contenido entre el cierre de h3 y cierre del div class "version"
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?"
+        rf"<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
-    
+
     if match:
         log_id = match.group(1)
         fecha = match.group(2)
         titulo = match.group(3)
-        contenido = match.group(5)
+        contenido = match.group(4)
+
+        # Limpiar el contenido para incluir solo etiquetas HTML dentro del div y después del cierre de h3
         elementos = []
         for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido, flags=re.DOTALL):
             tag = elemento.group(1)
             contenido_tag = elemento.group(3).strip()
             if contenido_tag:
                 elementos.append(f"<{tag}>{contenido_tag}</{tag}>")
+
         contenido_completo = "\n".join(elementos)
+
         return {
             'id': log_id,
             'titulo': titulo,
