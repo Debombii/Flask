@@ -159,14 +159,15 @@ def listar_titulos_logs(file_name):
         return [] 
 
     titulos = re.findall(
-        r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
+        r"<div class='version'>.*?<h2[^>]*id=\"(.*?)\"[^>]*>(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
         content,
-        re.DOTALL 
+        re.DOTALL
     )
 
     logger.info(f'Títulos encontrados: {titulos}')
 
     return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
+
     
 def eliminar_logs_por_titulo(file_name, ids):
     content = get_file_content(file_name)
@@ -176,9 +177,8 @@ def eliminar_logs_por_titulo(file_name, ids):
 
     for id_h2 in ids:
         logger.info(f'Eliminando log con ID "{id_h2}".')
-
         content = re.sub(
-            rf"<div class='version'>\s*<h2 id=\"{id_h2}\">.*?</div>",
+            rf"<div class='version'>\s*<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</div>",
             "", 
             content, 
             flags=re.DOTALL
@@ -209,6 +209,7 @@ def eliminar_logs_por_titulo(file_name, ids):
 
     logger.info(f'Logs con IDs {ids} eliminados del contenido del archivo {file_name}')
     return nuevo_contenido
+
 
 
 @app.route('/eliminar-log', methods=['POST'])
@@ -293,17 +294,19 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
         logger.info(f'Modificando log con ID "{id_h2}".')
         nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower() 
-        pattern_titulo = rf"(<div class='version'>.*?<h2 id=\"{id_h2}\">.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
+        pattern_titulo = rf"(<div class='version'>.*?<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
         content = re.sub(
             pattern_titulo,
             r"\1" + nuevo_id_titulo + r"\2" + nuevo_titulo + r"\4",
             content,
             flags=re.DOTALL
         )
+
         pattern_titular = rf"(<h3 class=\"titular\">)(.*?)(</h3>)"
         titular_content_match = re.search(pattern_titular, content, flags=re.DOTALL)
         if titular_content_match:
-            titular_content = titular_content_match.group(2)  # Guardar el contenido del titular
+            titular_content = titular_content_match.group(2) 
+        
         content_after_titular_pattern = rf"(<h3 class=\"titular\">.*?</h3>)(.*?)(</div>)"
         content = re.sub(
             content_after_titular_pattern,
@@ -314,6 +317,7 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
         logger.info(f'Log con ID "{id_h2}" modificado.')
 
     return content
+
 
 
 
