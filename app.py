@@ -260,11 +260,11 @@ def modificar_log():
         empresa = data.get('empresa')
         ids = data.get('ids')
         nuevo_titulo = data.get('nuevoTitulo')
-        nuevo_contenido_base64 = data.get('nuevoContenido')
+        nuevo_contenido = data.get('nuevoContenido')
 
         if not ids or not isinstance(ids, list):
             return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
-        if not nuevo_titulo or not nuevo_contenido_base64:
+        if not nuevo_titulo or not nuevo_contenido:
             return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
 
         TEMPLATE_HTML_NAME = {
@@ -283,17 +283,13 @@ def modificar_log():
         if not template_file_sha:
             return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
 
-        template_content_base64 = get_file_content(file_name)
-        if template_content_base64 is None:
+        template_content = get_file_content(file_name)
+        if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
-
-        template_content = base64.b64decode(template_content_base64).decode('utf-8')
-
-        nuevo_contenido = base64.b64decode(nuevo_contenido_base64).decode('utf-8')
 
         nuevo_contenido_html = modificar_logs(template_content, ids, nuevo_titulo, nuevo_contenido)
 
-        new_sha = update_file_content(file_name, base64.b64encode(nuevo_contenido_html.encode('utf-8')).decode('utf-8'), template_file_sha)
+        new_sha = update_file_content(file_name, nuevo_contenido_html, template_file_sha)
         if not new_sha:
             return jsonify({'error': 'No se pudo actualizar el archivo en GitHub'}), 500
 
