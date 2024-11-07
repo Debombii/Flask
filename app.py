@@ -356,21 +356,20 @@ def obtener_log():
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 def obtener_contenido_log(content, id_log):
+    # Ajustamos la expresión regular para capturar el ID, fecha, título y contenido deseado
     match = re.search(
-        rf"<div class='version'>.*?<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>",
+        rf"<div class='version'>.*?<h2[^>]*id=\"{id_log}\"[^>]*>.*?</h2>.*?"
+        rf"<p class='date' id=\"date\">(.*?)</p>.*?"
+        rf"<h3 class=\"titulo\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
     if match:
-        log_id = match.group(1)  # El id del log
-        fecha = match.group(2)  # La fecha
-        titulo = match.group(3)  # El título
-        contenido = match.group(5)  # Todo el contenido después del cierre de "titular"
         return {
-            'id': log_id,
-            'titulo': titulo,
-            'contenido': contenido,  # El contenido capturado después del "titular"
-            'fecha': fecha
+            'id': id_log,
+            'fecha': match.group(1),
+            'titulo': match.group(2),
+            'contenido': match.group(3)
         }
     return None
     
