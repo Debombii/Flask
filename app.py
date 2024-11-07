@@ -221,32 +221,22 @@ def eliminar_log():
         ids = data.get('ids')
 
         if not ids or not isinstance(ids, list):
-            return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
-
-        TEMPLATE_HTML_NAME = {
-            'MRG': 'template_MRG.html',
-            'Rubicon': 'template_Rubi.html',
-            'GERP': 'template_GERP.html',
-            'Godiz': 'template_Godiz.html',
-            'OCC': 'template_OCC.html'
-        }
+            return jsonify({'error': 'Debe proporcionar una lista de IDs'}), 400
 
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
 
         file_name = TEMPLATE_HTML_NAME[empresa]
-
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
-            return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
+            return jsonify({'error': 'No se encontró el archivo'}), 404
 
         nuevo_contenido = eliminar_logs_por_titulo(file_name, ids)
-        if nuevo_contenido is None:
-            return jsonify({'error': 'Ocurrió un error al eliminar los logs'}), 500
 
-        upload_file_sha = update_file_content(file_name, nuevo_contenido, template_file_sha)
-        if upload_file_sha is None:
-            return jsonify({'error': 'No se pudo actualizar el archivo'}), 500
+        if not nuevo_contenido:
+            return jsonify({'error': 'Error al eliminar logs'}), 400
+
+        update_file_content(file_name, nuevo_contenido, template_file_sha)
 
         return jsonify({'message': 'Logs eliminados correctamente'}), 200
 
