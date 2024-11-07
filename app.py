@@ -360,7 +360,7 @@ def obtener_contenido_log(content, id_log):
     match = re.search(
         rf"<div class='version'>.*?<h2[^>]*id=\"{id_log}\"[^>]*>.*?</h2>.*?"
         rf"<p class='date' id=\"date\">(.*?)</p>.*?"
-        rf"<h3 class=\"titulo\">(.*?)</h3>(.*?)</div>",
+        rf"<h3 class=\"titulo\" id=\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
