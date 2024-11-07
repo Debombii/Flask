@@ -177,21 +177,20 @@ def eliminar_logs_por_titulo(file_name, ids):
 
     for id_h2 in ids:
         logger.info(f'Eliminando log con ID "{id_h2}".')
-        
+
         content = re.sub(
             rf"<div class='version'>\s*<h2 id=\"{id_h2}\">.*?</div>",
             "",
             content,
             flags=re.DOTALL
         )
-        
+
         content = re.sub(
             rf"<li><a href=\"#{id_h2}\" class=\"base\">.*?</a></li>",
             "",
             content,
             flags=re.DOTALL
         )
-
     lines = content.splitlines()
     cleaned_lines = []
     previous_line_empty = False
@@ -252,6 +251,7 @@ def eliminar_log():
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 @app.route('/modificar-log', methods=['POST'])
 def modificar_log():
