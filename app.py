@@ -359,19 +359,19 @@ def obtener_log():
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\" class=\"base\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\" class=\"base\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\">(.*?)</h3>(.*?)</div>"
         content,
         flags=re.DOTALL
     )
     if match:
-        log_id = match.group(1)  # El id del log
-        fecha = match.group(2)  # La fecha
-        titulo = match.group(3)  # El título
-        contenido = match.group(5)  # Todo el contenido después del cierre de "titular"
+        log_id = match.group(1)
+        fecha = match.group(2)
+        titulo = match.group(3)
+        contenido = match.group(5)
         return {
             'id': log_id,
             'titulo': titulo,
-            'contenido': contenido,  # El contenido capturado después del "titular"
+            'contenido': contenido,
             'fecha': fecha
         }
     return None
