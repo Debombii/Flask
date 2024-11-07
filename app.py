@@ -363,30 +363,19 @@ def obtener_contenido_log(content, id_log):
         content,
         flags=re.DOTALL
     )
-    
     if match:
-        log_id = match.group(1)
-        fecha = match.group(2)
-        titulo = match.group(3)
-        contenido = match.group(5)
-        elementos = []
-        
-        titular_pattern = r'<h3 class="titular">.*?</h3>'
-        contenido_sin_titular = re.sub(titular_pattern, '', contenido, flags=re.DOTALL)
-
-        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido_sin_titular, flags=re.DOTALL):
-            tag = elemento.group(1)
-            contenido_tag = elemento.group(3).strip()
-            if contenido_tag:
-                elementos.append(f"<{tag}>{contenido_tag}</{tag}>")
-        contenido_completo = "\n".join(elementos)
+        log_id = match.group(1)  # El id del log
+        fecha = match.group(2)  # La fecha
+        titulo = match.group(3)  # El título
+        contenido = match.group(5)  # Todo el contenido después del cierre de "titular"
         return {
             'id': log_id,
             'titulo': titulo,
-            'contenido': contenido_completo,
+            'contenido': contenido,  # El contenido capturado después del "titular"
             'fecha': fecha
         }
     return None
+
 
 
 
