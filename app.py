@@ -258,7 +258,7 @@ def modificar_log():
     try:
         data = request.json
         empresa = data.get('empresa')
-        log_id = data.get('id')  # Cambiado de 'ids' a 'id'
+        log_id = data.get('id')
         nuevo_titulo = data.get('nuevoTitulo')
         nuevo_contenido = data.get('nuevoContenido')
         if not log_id:
@@ -304,7 +304,7 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
 
         nuevo_id_titulo = re.sub(r'\s+', '-', nuevo_titulo).lower()
 
-        pattern_titulo = rf"(<div class='version'>.*?<h2[^>]*id=\"{id_h2}\"[^>]*>.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
+        pattern_titulo = rf"(<div class='version'>.*?<h2[^>]*id=\"{id_h2}\"[^>]*class=\"[^\"]*base[^\"]*\"[^>]*>.*?</h2>.*?<p class='date' id=\"date\">.*?</p>.*?<h3 class=\"titulo\" id=\").*?(\">)(.*?)(</h3>)"
         content = re.sub(
             pattern_titulo,
             r"\1" + nuevo_id_titulo + r"\2" + nuevo_titulo + r"\4",
