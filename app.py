@@ -329,9 +329,6 @@ def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
 
     return content
 
-
-
-
 @app.route('/obtener-log', methods=['POST'])
 def obtener_log():
     try:
