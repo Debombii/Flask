@@ -325,15 +325,25 @@ def compress_data(data):
     return base64.b64encode(compressed_data).decode('utf-8')
 
 @app.route('/obtener-log', methods=['POST'])
+@app.route('/obtener-log', methods=['POST'])
 def obtener_log():
     try:
+        # Obtener los datos de la solicitud
         data = request.json
+        if not data:
+            logger.error("No se recibió ningún dato en la solicitud.")
+            return jsonify({'error': 'No se recibió ningún dato en la solicitud'}), 400
+        
         empresa = data.get('empresa')
         id_log = data.get('id')
 
         if not id_log:
             logger.error("ID del log no proporcionado.")
             return jsonify({'error': 'Debe proporcionar el ID del log'}), 400
+        
+        if not empresa:
+            logger.error("Empresa no proporcionada.")
+            return jsonify({'error': 'Debe proporcionar la empresa'}), 400
         
         if empresa not in TEMPLATE_HTML_NAME:
             logger.error(f"Empresa no válida: {empresa}")
@@ -342,6 +352,7 @@ def obtener_log():
         file_name = TEMPLATE_HTML_NAME[empresa]
         
         logger.debug(f"Buscando archivo para la empresa {empresa}: {file_name}")
+        # Intentar obtener la clave SHA del archivo
         template_file_sha = find_file_sha_by_name(file_name)
         if not template_file_sha:
             logger.error(f"No se encontró el archivo de la empresa: {file_name}")
@@ -353,6 +364,7 @@ def obtener_log():
             logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
         
+        # Ahora buscar el contenido del log con el ID proporcionado
         logger.debug(f"Buscando el log con ID {id_log} en el contenido del archivo.")
         contenido_log = obtener_contenido_log(template_content, id_log)
         
@@ -375,8 +387,9 @@ def obtener_log():
             return jsonify({'error': 'Log no encontrado'}), 404
 
     except Exception as e:
-        logger.error(f"Error inesperado: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error inesperado en la función obtener_log: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 
 
