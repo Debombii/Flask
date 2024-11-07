@@ -258,12 +258,11 @@ def modificar_log():
     try:
         data = request.json
         empresa = data.get('empresa')
-        ids = data.get('ids')
+        log_id = data.get('id')  # Cambiado de 'ids' a 'id'
         nuevo_titulo = data.get('nuevoTitulo')
         nuevo_contenido = data.get('nuevoContenido')
-
-        if not ids or not isinstance(ids, list):
-            return jsonify({'error': 'Debe proporcionar una lista de ids'}), 400
+        if not log_id:
+            return jsonify({'error': 'Debe proporcionar un id válido'}), 400
         if not nuevo_titulo or not nuevo_contenido:
             return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
 
@@ -287,13 +286,13 @@ def modificar_log():
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
 
-        nuevo_contenido_html = modificar_logs(template_content, ids, nuevo_titulo, nuevo_contenido)
+        nuevo_contenido_html = modificar_logs(template_content, [log_id], nuevo_titulo, nuevo_contenido)
 
         new_sha = update_file_content(file_name, nuevo_contenido_html, template_file_sha)
         if not new_sha:
             return jsonify({'error': 'No se pudo actualizar el archivo en GitHub'}), 500
 
-        return jsonify({'message': 'Logs modificados correctamente'}), 200
+        return jsonify({'message': 'Log modificado correctamente'}), 200
 
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
