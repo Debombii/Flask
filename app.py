@@ -163,10 +163,12 @@ def listar_titulos_logs(file_name):
         content,
         re.DOTALL
     )
+
     logger.info(f'Títulos encontrados: {titulos}')
 
     return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
 
+    
 def eliminar_logs_por_titulo(file_name, ids):
     content = get_file_content(file_name)
     if content is None:
@@ -356,23 +358,27 @@ def obtener_log():
         return jsonify({'error': 'Ocurrió un error interno'}), 500
 
 def obtener_contenido_log(content, id_log):
-    # Ajustamos la expresión regular para capturar el ID, fecha, título y contenido deseado
     match = re.search(
-        rf"<div class='version'>.*?<h2[^>]*id=\"{id_log}\"[^>]*>.*?</h2>.*?"
-        rf"<p class='date' id=\"date\">(.*?)</p>.*?"
-        rf"<h3 class=\"titulo\" id=\">(.*?)</h3>(.*?)</div>",
+        rf"<div class='version'>.*?<h2 class=\"base\" id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>.*?<h3 class=\"titular\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
     if match:
+        log_id = match.group(1)  # El id del log
+        fecha = match.group(2)  # La fecha
+        titulo = match.group(3)  # El título
+        contenido = match.group(5)  # Todo el contenido después del cierre de "titular"
         return {
-            'id': id_log,
-            'fecha': match.group(1),
-            'titulo': match.group(2),
-            'contenido': match.group(3)
+            'id': log_id,
+            'titulo': titulo,
+            'contenido': contenido,  # El contenido capturado después del "titular"
+            'fecha': fecha
         }
     return None
-    
+
+
+
+
 @app.route('/upload-file', methods=['POST'])
 def upload_file_endpoint():
     try:
