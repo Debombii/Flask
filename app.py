@@ -348,11 +348,13 @@ def obtener_log():
         
         contenido_log = obtener_contenido_log(template_content, id_log)
         if contenido_log:
-            compressed_contenido = compress_data(contenido_log['contenido'])
+            # Convertir el contenido a Base64
+            contenido_base64 = base64.b64encode(contenido_log['contenido'].encode('utf-8')).decode('utf-8')
+            
             return jsonify({
                 'id': contenido_log['id'],
                 'titulo': contenido_log['titulo'],
-                'contenido': compressed_contenido,
+                'contenido': contenido_base64,  # Se envía el contenido en Base64
                 'fecha': contenido_log['fecha']
             }), 200
         else:
