@@ -179,7 +179,6 @@ def eliminar_logs_por_titulo(file_name, ids):
     if content is None:
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
         return None
-
     for id_h2 in ids:
         logger.info(f'Eliminando log con ID "{id_h2}".')
 
@@ -191,11 +190,12 @@ def eliminar_logs_por_titulo(file_name, ids):
         )
 
         content = re.sub(
-            rf"<li><a href=\"#{id_h2}\" class=\"base\">.*?</a></li>",
+            rf"<li><a href=\"#({id_h2})\" class=\"base\">.*?</a></li>",
             "",
             content,
             flags=re.DOTALL
         )
+
     lines = content.splitlines()
     cleaned_lines = []
     previous_line_empty = False
@@ -214,6 +214,7 @@ def eliminar_logs_por_titulo(file_name, ids):
 
     logger.info(f'Logs con IDs {ids} eliminados del contenido del archivo {file_name}')
     return nuevo_contenido
+
 
 
 @app.route('/eliminar-log', methods=['POST'])
