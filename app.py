@@ -5,6 +5,8 @@ import os
 import base64
 import logging
 import re
+import gzip
+import io
 import traceback
 
 app = Flask(__name__)
@@ -155,7 +157,10 @@ def listar_titulos_logs(file_name):
     content = get_file_content(file_name)
     if content is None:
         logger.error(f"No se pudo obtener el contenido del archivo: {file_name}")
-        return [] 
+        return []
+
+    # Verifica el contenido para asegurarte de que lo que estás leyendo es lo esperado
+    logger.info(f"Contenido del archivo {file_name}: {content[:500]}...")  # Muestra los primeros 500 caracteres
 
     titulos = re.findall(
         r"<div class='version'>.*?<h2 id=\"(.*?)\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>",
@@ -166,6 +171,7 @@ def listar_titulos_logs(file_name):
     logger.info(f'Títulos encontrados: {titulos}')
 
     return [{'id': t[0], 'titulo': t[3], 'fecha': t[2]} for t in titulos]
+
 
     
 def eliminar_logs_por_titulo(file_name, ids):
@@ -264,6 +270,7 @@ def modificar_log():
             return jsonify({'error': 'Debe proporcionar un id válido'}), 400
         if not nuevo_titulo or not nuevo_contenido:
             return jsonify({'error': 'Debe proporcionar el nuevo título y el nuevo contenido'}), 400
+        nuevo_contenido_decodificado = base64.b64decode(nuevo_contenido).decode('utf-8')
 
         TEMPLATE_HTML_NAME = {
             'MRG': 'template_MRG.html',
@@ -285,7 +292,7 @@ def modificar_log():
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
 
-        nuevo_contenido_html = modificar_logs(template_content, [log_id], nuevo_titulo, nuevo_contenido)
+        nuevo_contenido_html = modificar_logs(template_content, [log_id], nuevo_titulo, nuevo_contenido_decodificado)
 
         new_sha = update_file_content(file_name, nuevo_contenido_html, template_file_sha)
         if not new_sha:
@@ -296,6 +303,7 @@ def modificar_log():
     except Exception as e:
         logger.error(f"Error: {e}\n{traceback.format_exc()}")
         return jsonify({'error': 'Ocurrió un error interno'}), 500
+
 
 def modificar_logs(content, ids, nuevo_titulo, nuevo_contenido):
     for id_h2 in ids:
@@ -329,6 +337,7 @@ def obtener_log():
         data = request.json
         empresa = data.get('empresa')
         id_log = data.get('id')
+        
         if not id_log:
             return jsonify({'error': 'Debe proporcionar el ID del log'}), 400
 
@@ -339,26 +348,24 @@ def obtener_log():
             'Godiz': 'template_Godiz.html',
             'OCC': 'template_OCC.html'
         }
-        
+
         if empresa not in TEMPLATE_HTML_NAME:
             return jsonify({'error': 'Empresa no válida'}), 400
 
         file_name = TEMPLATE_HTML_NAME[empresa]
-        template_file_sha = find_file_sha_by_name(file_name)
-        if not template_file_sha:
-            return jsonify({'error': 'No se encontró el archivo de la empresa'}), 400
-
         template_content = get_file_content(file_name)
+        
         if template_content is None:
             return jsonify({'error': 'No se pudo obtener el contenido del archivo de la empresa'}), 400
 
         contenido_log = obtener_contenido_log(template_content, id_log)
+        
         if contenido_log:
+            contenido_base64 = base64.b64encode(contenido_log['contenido'].encode('utf-8')).decode('utf-8')
+            
             return jsonify({
-                'id': contenido_log['id'],
                 'titulo': contenido_log['titulo'],
-                'contenido': contenido_log['contenido'],
-                'fecha': contenido_log['fecha']
+                'contenido': contenido_base64  # Enviar contenido en Base64
             }), 200
         else:
             return jsonify({'error': 'Log no encontrado'}), 404
@@ -368,32 +375,21 @@ def obtener_log():
 
 def obtener_contenido_log(content, id_log):
     match = re.search(
-        rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?<p class='date' id=\"date\">(.*?)</p>.*?"
+        rf"<div class='version'>.*?<h2 id=\"{id_log}\">(.*?)</h2>.*?"
         rf"<h3 class=\"titulo\" id=\".*?\">(.*?)</h3>(.*?)</div>",
         content,
         flags=re.DOTALL
     )
 
     if match:
-        log_id = match.group(1)
-        fecha = match.group(2)
-        titulo = match.group(3)
-        contenido = match.group(4)
+        titulo = match.group(2)  # Captura el título dentro de <h3 class="titulo">
+        contenido = match.group(3)  
 
-        elementos = []
-        for elemento in re.finditer(r'<(p|a|h2|h3)(.*?)>(.*?)</\1>', contenido, flags=re.DOTALL):
-            tag = elemento.group(1)
-            contenido_tag = elemento.group(3).strip()
-            if contenido_tag:
-                elementos.append(f"<{tag}>{contenido_tag}</{tag}>")
-
-        contenido_completo = "\n".join(elementos)
-
+        contenido_limpio = re.sub(r'<[^>]+>', '', contenido)  
+        
         return {
-            'id': log_id,
             'titulo': titulo,
-            'contenido': contenido_completo,
-            'fecha': fecha
+            'contenido': contenido_limpio  # Contenido limpio sin etiquetas HTML
         }
     return None
 
